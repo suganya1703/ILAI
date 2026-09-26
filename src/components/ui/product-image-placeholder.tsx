@@ -15,8 +15,11 @@ export const ProductImagePlaceholder: React.FC<ProductImageProps> = ({
       className={`relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-md group flex items-center justify-center ${className}`}
     >
       <img
-        src="/images/product.jpg"
+        src="/images/ilai-box-front.jpg"
         alt={alt}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = "/images/product.jpg";
+        }}
         className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
       />
     </div>

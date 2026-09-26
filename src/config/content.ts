@@ -90,8 +90,10 @@ export const productContent = {
   description: `ILAI is a sustainable sanitary pad created to provide women in India with safe, comfortable, and affordable menstrual care. Made using banana fibre and water hyacinth based plant materials, ILAI offers gentle protection while reducing plastic waste in our environment.`,
   
   images: [
-    "/images/ilai-product-packaging.jpg",
-    "/images/ilai-pad-1.jpg",
+    "/images/ilai-box-front.jpg",
+    "/images/ilai-box-inside.jpg",
+    "/images/ilai-single-pad.png",
+    "/images/ilai-box-back.jpg",
   ],
 
   highlights: [

@@ -151,8 +151,11 @@ export default async function OrderConfirmationPage({
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E2DCCB] shrink-0 bg-white">
                     <img
-                      src="/images/ilai-pad-1.jpg"
+                      src="/images/ilai-box-front.jpg"
                       alt={item.product_name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/images/product.jpg";
+                      }}
                       className="w-full h-full object-cover"
                     />
                   </div>
