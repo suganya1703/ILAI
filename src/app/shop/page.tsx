@@ -19,7 +19,12 @@ export default function ShopPage() {
 
   const productImages = productContent.images && productContent.images.length > 0 
     ? productContent.images 
-    : ["/images/ilai-pad-1.jpg", "/images/product.jpg"];
+    : [
+        "/images/ilai-box-front.jpg",
+        "/images/ilai-box-inside.jpg",
+        "/images/ilai-single-pad.png",
+        "/images/ilai-box-back.jpg",
+      ];
 
   const productObj = {
     id: productContent.id,
