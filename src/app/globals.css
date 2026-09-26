@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-bg: #F6F2E6;
+  --brand-green: #506638;
+  --brand-green-hover: #3E512B;
+  --brand-accent: #E8A2A4;
+  --surface-color: #FFFFFF;
+  --text-dark: #263618;
+  --muted-text: #5F6F50;
+  --border-color: #E2DCCB;
+}
+
+@layer base {
+  body {
+    background-color: var(--brand-bg);
+    color: var(--text-dark);
+    @apply antialiased selection:bg-[#E8A2A4]/30 selection:text-[#263618];
+  }
+}
+
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+.blend-multiply {
+  mix-blend-mode: multiply;
+}

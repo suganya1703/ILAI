@@ -1,0 +1,54 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E4D3B" />
+      <stop offset="100%" stop-color="#0d261e" />
+    </linearGradient>
+    <linearGradient id="lavender" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8DFF5" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)" />
+  
+  <!-- Decorative leaf graphics -->
+  <path d="M900,100 C700,200 600,400 600,400 C600,400 750,380 950,280 C1150,180 1200,50 1200,50 C1200,50 1000,80 900,100 Z" fill="url(#lavender)" opacity="0.15" />
+  <path d="M100,500 C300,400 400,200 400,200 C400,200 250,220 50,320 C-150,420 -200,550 -200,550 C-200,550 0,520 100,500 Z" fill="url(#lavender)" opacity="0.12" />
+
+  <!-- Logo & Title -->
+  <text x="100" y="220" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="96" fill="#ffffff" letter-spacing="-2">
+    ilai <tspan font-weight="600" font-size="56" fill="#8B5CF6">(இலை)</tspan>
+  </text>
+
+  <text x="100" y="310" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="42" fill="#E8DFF5">
+    Eco-Friendly Biodegradable Sanitary Pads
+  </text>
+
+  <text x="100" y="380" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="28" fill="#a8bba2">
+    Crafted from Banana Fibre &amp; Water Hyacinth Based Plant Materials
+  </text>
+
+  <!-- Badges Row -->
+  <g transform="translate(100, 440)">
+    <rect width="220" height="60" rx="30" fill="#ffffff" opacity="0.1" />
+    <text x="110" y="38" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#ffffff" text-anchor="middle">
+      🌱 100% Plant Fibre
+    </text>
+  </g>
+
+  <g transform="translate(340, 440)">
+    <rect width="220" height="60" rx="30" fill="#ffffff" opacity="0.1" />
+    <text x="110" y="38" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#ffffff" text-anchor="middle">
+      ♻️ Biodegradable
+    </text>
+  </g>
+
+  <g transform="translate(580, 440)">
+    <rect width="220" height="60" rx="30" fill="#ffffff" opacity="0.1" />
+    <text x="110" y="38" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#ffffff" text-anchor="middle">
+      🏷️ ₹40 / 6 Pads
+    </text>
+  </g>
+</svg>
