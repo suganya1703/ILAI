@@ -12,8 +12,8 @@ let cachedTransporter: Transporter | null = null;
 let lastTransporterKey = "";
 
 export function getMailTransporter(): Transporter | null {
-  const user = (process.env.GMAIL_SMTP_USER || "").trim();
-  const rawPass = (process.env.GMAIL_APP_PASSWORD || "").trim();
+  const user = (process.env.GMAIL_SMTP_USER || "info.ilaiofficial@gmail.com").trim();
+  const rawPass = (process.env.GMAIL_APP_PASSWORD || "goauueyoqorssbuk").trim();
 
   if (!user || !rawPass || rawPass === "your_gmail_app_password_here" || rawPass.includes("placeholder")) {
     return null;
