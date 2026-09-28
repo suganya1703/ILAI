@@ -86,13 +86,14 @@ export function saveLocalOrder(order: Order): void {
   }
 }
 
-export function getLocalOrder(idOrOrderNumber: string): Order | null {
+export function getLocalOrder(idOrOrderNumberOrToken: string): Order | null {
   try {
     const orders = getAllLocalOrders();
-    const cleanId = (idOrOrderNumber || "").trim().toLowerCase();
+    const cleanId = (idOrOrderNumberOrToken || "").trim().toLowerCase();
     const match = orders.find(
       (o) =>
         (o.id && o.id.toLowerCase() === cleanId) ||
+        (o.confirmation_token && o.confirmation_token.toLowerCase() === cleanId) ||
         (o.order_number && o.order_number.toLowerCase() === cleanId)
     );
     return match || null;
@@ -114,6 +115,7 @@ export function updateLocalOrder(
     const index = orders.findIndex(
       (o) =>
         (o.id && o.id.toLowerCase() === cleanId) ||
+        (o.confirmation_token && o.confirmation_token.toLowerCase() === cleanId) ||
         (o.order_number && o.order_number.toLowerCase() === cleanId)
     );
 

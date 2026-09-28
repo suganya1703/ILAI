@@ -26,11 +26,11 @@ export const DELIVERY_COVERAGE_TEXT = "Delivering across Tamil Nadu";
  * - OFFER_BADGE_TEXT: Badge displayed near the price ("Limited time offer")
  * - OFFER_VALIDITY_TEXT: Text displayed below the price ("Offer valid till october 31")
  */
-export const OFFER_END_DATE = "2026-10-31T23:59:59+05:30";
-export const REGULAR_PRICE = 60;
-export const OFFER_PRICE = 45;
-export const OFFER_BADGE_TEXT = "Limited time offer";
-export const OFFER_VALIDITY_TEXT = "Offer valid till october 31";
+export const OFFER_END_DATE = process.env.NEXT_PUBLIC_OFFER_END_DATE || "2026-10-31T23:59:59+05:30";
+export const REGULAR_PRICE = Number(process.env.NEXT_PUBLIC_REGULAR_PRICE) || 60;
+export const OFFER_PRICE = Number(process.env.NEXT_PUBLIC_OFFER_PRICE) || 45;
+export const OFFER_BADGE_TEXT = process.env.NEXT_PUBLIC_OFFER_BADGE_TEXT || "Limited time offer";
+export const OFFER_VALIDITY_TEXT = process.env.NEXT_PUBLIC_OFFER_VALIDITY_TEXT || "Offer valid till october 31";
 
 /**
  * Checks whether the promotional offer is currently active.
@@ -39,10 +39,10 @@ export const OFFER_VALIDITY_TEXT = "Offer valid till october 31";
 export function isOfferActive(): boolean {
   try {
     const end = new Date(OFFER_END_DATE).getTime();
-    if (isNaN(end)) return false;
+    if (isNaN(end)) return true; // Default to active launch offer
     return Date.now() <= end;
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -90,10 +90,10 @@ export const productContent = {
   description: `ILAI is a sustainable sanitary pad created to provide women in India with safe, comfortable, and affordable menstrual care. Made using banana fibre and water hyacinth based plant materials, ILAI offers gentle protection while reducing plastic waste in our environment.`,
   
   images: [
-    "/images/ilai-box-front.jpg",
-    "/images/ilai-box-inside.jpg",
-    "/images/ilai-single-pad.png",
-    "/images/ilai-box-back.jpg",
+    "/images/product/ilai-pad-1.jpg",
+    "/images/product/ilai-pad-2.jpg",
+    "/images/product/ilai-pad-3.jpg",
+    "/images/product/ilai-pad-4.jpg",
   ],
 
   highlights: [

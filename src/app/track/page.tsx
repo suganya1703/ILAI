@@ -2,14 +2,34 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, CheckCircle2, Clock, Package, Truck, Home, AlertCircle } from "lucide-react";
+import { Search, CheckCircle2, Clock, Package, Truck, Home, AlertCircle, Info } from "lucide-react";
 import { Order, OrderStatus } from "@/types";
 import { formatINR } from "@/lib/utils";
 
+function cleanOrderNumber(val: string): string {
+  if (!val) return "";
+  let clean = val.trim().toUpperCase();
+  while (clean.startsWith("ILILAI-") || clean.startsWith("IL-ILAI-")) {
+    clean = clean.replace(/^(IL-?)+ILAI-/i, "ILAI-");
+  }
+  return clean;
+}
+
+function cleanMobile(val: string): string {
+  if (!val) return "";
+  return val.replace(/\D/g, "").slice(-10);
+}
+
 function OrderTrackingContent() {
   const searchParams = useSearchParams();
-  const [orderNumber, setOrderNumber] = useState(searchParams.get("id") || "");
-  const [mobileNumber, setMobileNumber] = useState(searchParams.get("mobile") || "");
+  const rawId = searchParams.get("id") || searchParams.get("orderNumber") || "";
+  const rawMobile = searchParams.get("mobile") || "";
+
+  const initialOrderNumber = cleanOrderNumber(rawId);
+  const initialMobile = cleanMobile(rawMobile);
+
+  const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
+  const [mobileNumber, setMobileNumber] = useState(initialMobile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
@@ -21,11 +41,14 @@ function OrderTrackingContent() {
     { status: "Delivered", label: "Delivered", icon: Home },
   ];
 
-  const handleTrack = async (e?: React.FormEvent) => {
+  const handleTrack = async (e?: React.FormEvent, customId?: string, customMobile?: string) => {
     if (e) e.preventDefault();
     setError(null);
 
-    if (!orderNumber.trim() || !mobileNumber.trim()) {
+    const targetOrderNumber = cleanOrderNumber(customId || orderNumber);
+    const targetMobile = cleanMobile(customMobile || mobileNumber);
+
+    if (!targetOrderNumber || !targetMobile) {
       setError("Please enter both your Order ID and 10-digit mobile number");
       return;
     }
@@ -37,8 +60,8 @@ function OrderTrackingContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderNumber,
-          mobileNumber,
+          orderNumber: targetOrderNumber,
+          mobileNumber: targetMobile,
         }),
       });
 
@@ -51,7 +74,7 @@ function OrderTrackingContent() {
         setOrder(data.order);
       }
     } catch (err: any) {
-      setError("Network error while searching for order");
+      setError("Network error while searching for order. Please try again.");
       setOrder(null);
     } finally {
       setLoading(false);
@@ -59,20 +82,29 @@ function OrderTrackingContent() {
   };
 
   useEffect(() => {
-    if (searchParams.get("id") && searchParams.get("mobile")) {
-      handleTrack();
+    if (initialOrderNumber && initialMobile) {
+      handleTrack(undefined, initialOrderNumber, initialMobile);
     }
   }, []);
 
   const getStepState = (stepStatus: OrderStatus) => {
     if (!order) return "pending";
 
+    // If still in pending status, none of the confirmed pipeline steps are complete
+    if (
+      order.order_status === "Pending verification" ||
+      order.order_status === "Pending confirmation" ||
+      order.order_status === "Pending"
+    ) {
+      return "pending";
+    }
+
     const statusOrder: OrderStatus[] = ["Confirmed", "Packed", "Shipped", "Delivered"];
     const currentIndex = statusOrder.indexOf(order.order_status);
     const stepIndex = statusOrder.indexOf(stepStatus);
 
     if (order.order_status === "Cancelled") return "cancelled";
-    if (stepIndex <= currentIndex) return "completed";
+    if (currentIndex >= 0 && stepIndex <= currentIndex) return "completed";
     return "pending";
   };
 
@@ -87,7 +119,7 @@ function OrderTrackingContent() {
           Track Your Order
         </h1>
         <p className="text-sm text-[#5F6F50]">
-          Enter your Order ID (format: <code>ILAI-2026-0001</code>) and registered mobile number to view shipping progress.
+          Enter your Order ID (format: <code>ILAI-2026-0001</code>) and 10-digit registered mobile number to view shipping progress.
         </p>
       </div>
 
@@ -101,7 +133,7 @@ function OrderTrackingContent() {
             <input
               type="text"
               value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
+              onChange={(e) => setOrderNumber(cleanOrderNumber(e.target.value))}
               placeholder="e.g. ILAI-2026-0001"
               className="w-full px-4 py-3 rounded-xl border border-[#E2DCCB] text-sm focus:outline-none focus:border-[#506638] focus:ring-2 focus:ring-[#EDE8D8]"
             />
@@ -109,14 +141,14 @@ function OrderTrackingContent() {
 
           <div className="space-y-1">
             <label className="block text-xs font-bold text-[#263618] uppercase">
-              Mobile Number *
+              Mobile Number (10 digits) *
             </label>
             <input
               type="tel"
               value={mobileNumber}
               onChange={(e) => setMobileNumber(e.target.value)}
               placeholder="e.g. 9876543210"
-              maxLength={10}
+              maxLength={14}
               className="w-full px-4 py-3 rounded-xl border border-[#E2DCCB] text-sm focus:outline-none focus:border-[#506638] focus:ring-2 focus:ring-[#EDE8D8]"
             />
           </div>
@@ -151,7 +183,7 @@ function OrderTrackingContent() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E2DCCB] pb-4">
             <div>
               <span className="text-xs font-semibold text-[#5F6F50] uppercase tracking-wider block">Order ID</span>
-              <h2 className="text-2xl font-extrabold text-[#506638]">{order.order_number}</h2>
+              <h2 className="text-2xl font-extrabold text-[#506638]">{cleanOrderNumber(order.order_number)}</h2>
               <p className="text-xs text-[#5F6F50] mt-0.5">
                 Placed on {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
               </p>
@@ -159,17 +191,36 @@ function OrderTrackingContent() {
 
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-[#5F6F50]">Current Status:</span>
-              <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border border-[#E2DCCB] ${
-                order.order_status === "Delivered"
-                  ? "bg-[#EDE8D8] text-[#506638]"
+              <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border ${
+                order.order_status === "Delivered" || order.order_status === "Confirmed"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                   : order.order_status === "Cancelled"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-[#EDE8D8] text-[#263618]"
+                  ? "bg-red-100 text-red-800 border-red-300"
+                  : "bg-amber-100 text-amber-900 border-amber-300"
               }`}>
                 {order.order_status}
               </span>
             </div>
           </div>
+
+          {/* Pending Notice Banner when order is awaiting admin confirmation or verification */}
+          {(order.order_status === "Pending verification" || order.order_status === "Pending confirmation" || order.order_status === "Pending") && (
+            <div className="p-4 bg-amber-50 border border-amber-300 text-amber-950 rounded-2xl flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <p className="font-bold">
+                  {order.order_status === "Pending confirmation"
+                    ? "Order Received — Pending Confirmation (Cash on Delivery)"
+                    : "Payment Submitted — Pending Verification (UPI / GPay)"}
+                </p>
+                <p className="text-amber-800">
+                  {order.order_status === "Pending confirmation"
+                    ? "We have received your Cash on Delivery order. Our team will verify your address and confirm your order shortly."
+                    : "We have received your UPI payment details. Our team will verify your transaction and confirm your order shortly."}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Stepper Timeline */}
           <div className="space-y-4">
@@ -225,7 +276,9 @@ function OrderTrackingContent() {
           <div className="pt-4 border-t border-[#E2DCCB] text-xs text-[#5F6F50] space-y-2">
             <p className="font-bold text-[#263618]">Delivery Address:</p>
             <p>{order.customer_name} • {order.address_line}, {order.city}, {order.state} - {order.pincode}</p>
-            <p className="pt-1 font-bold text-[#263618]">Total Amount: {formatINR(order.total_amount)} ({order.payment_method.toUpperCase()})</p>
+            <p className="pt-1 font-bold text-[#263618]">
+              Total Amount: {formatINR(order.total_amount)} ({order.payment_method === "cod" ? "Cash on Delivery" : "UPI / GPay"})
+            </p>
           </div>
         </div>
       )}

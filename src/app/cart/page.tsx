@@ -119,7 +119,7 @@ export default function CartPage() {
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#E2DCCB] shrink-0 bg-white shadow-sm">
                   <img
-                    src="/images/ilai-box-front.jpg"
+                    src={productContent.images?.[0] || "/images/product/ilai-pad-1.jpg"}
                     alt="ILAI Sanitary Pad Box"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "/images/product.jpg";

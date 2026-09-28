@@ -1,6 +1,6 @@
-export type OrderStatus = 'Pending' | 'Confirmed' | 'Packed' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type OrderStatus = 'Pending verification' | 'Pending confirmation' | 'Pending' | 'Confirmed' | 'Packed' | 'Shipped' | 'Delivered' | 'Cancelled';
 export type PaymentMethod = 'upi' | 'upi_gpay' | 'cod' | 'razorpay';
-export type PaymentStatus = 'Pending verification' | 'Paid' | 'COD Pending' | 'pending' | 'paid' | 'failed';
+export type PaymentStatus = 'Pending verification' | 'Paid' | 'COD Pending' | 'Cash on Delivery' | 'Pending confirmation' | 'Pending' | 'pending' | 'paid' | 'failed';
 
 export interface Product {
   id: string;
@@ -54,6 +54,7 @@ export interface OrderStatusHistoryItem {
 
 export interface Order {
   id: string;
+  confirmation_token?: string;
   order_number: string;
   customer_name: string;
   customer_email: string;

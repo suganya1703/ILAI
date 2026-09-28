@@ -200,17 +200,19 @@ export default function CheckoutPage() {
         return;
       }
 
+      const confirmationToken = data.confirmationToken || data.orderId;
+
       // 1. If UPI / GPay payment method: redirect immediately to confirmation page with QR code
       if (formData.payment_method === "upi" || formData.payment_method === "upi_gpay") {
         clearCart();
-        window.location.href = `/order-confirmation/${data.orderId}`;
+        window.location.href = `/order-confirmation/${confirmationToken}`;
         return;
       }
 
       // 2. If COD payment method: redirect to confirmation page
       if (formData.payment_method === "cod") {
         clearCart();
-        window.location.href = `/order-confirmation/${data.orderId}`;
+        window.location.href = `/order-confirmation/${confirmationToken}`;
         return;
       }
 
@@ -258,7 +260,7 @@ export default function CheckoutPage() {
               const verifyData = await verifyRes.json();
               if (verifyData.success) {
                 clearCart();
-                window.location.href = `/order-confirmation/${data.orderId}`;
+                window.location.href = `/order-confirmation/${confirmationToken}`;
               } else {
                 setServerError("Payment verification failed. Please contact support.");
                 setIsSubmitting(false);
@@ -290,7 +292,7 @@ export default function CheckoutPage() {
 
       // Fallback for any other payment method
       clearCart();
-      window.location.href = `/order-confirmation/${data.orderId}`;
+      window.location.href = `/order-confirmation/${confirmationToken}`;
     } catch (err: any) {
       if (err.name === "AbortError") {
         setServerError("Order request timed out after 15 seconds. Please check your network and try again.");

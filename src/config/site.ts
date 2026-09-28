@@ -15,7 +15,7 @@ export const siteConfig = {
   whatsappMessage: "Hello ILAI team, I have an inquiry regarding your biodegradable sanitary pads.",
   instagramUrl: "https://instagram.com/ilai.care",
   upiId: "suganyasubramaniam1727@okaxis",
-  upiQrImage: "/images/ilai-upi-qr.png",
+  getUpiQrUrl: (token: string) => `/api/orders/${token}/qr`,
   currencySymbol: "₹",
   defaultDeliveryCharge: 40,
   freeDeliveryThreshold: null,

@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- 3. Orders Table
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  confirmation_token UUID NOT NULL DEFAULT gen_random_uuid(),
   order_number TEXT UNIQUE NOT NULL,
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
@@ -50,11 +51,11 @@ CREATE TABLE IF NOT EXISTS orders (
   city TEXT NOT NULL,
   state TEXT NOT NULL,
   pincode TEXT NOT NULL,
-  payment_method TEXT NOT NULL CHECK (payment_method IN ('razorpay', 'cod')),
-  payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed')),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('upi', 'upi_gpay', 'cod', 'razorpay')),
+  payment_status TEXT NOT NULL DEFAULT 'Pending verification' CHECK (payment_status IN ('Pending verification', 'Paid', 'COD Pending', 'pending', 'paid', 'failed', 'Cash on Delivery', 'Pending confirmation', 'Pending')),
   razorpay_order_id TEXT,
   razorpay_payment_id TEXT,
-  order_status TEXT NOT NULL DEFAULT 'Confirmed' CHECK (order_status IN ('Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled')),
+  order_status TEXT NOT NULL DEFAULT 'Pending verification' CHECK (order_status IN ('Pending verification', 'Pending confirmation', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled')),
   tracking_number TEXT,
   courier_name TEXT,
   subtotal NUMERIC(10,2) NOT NULL,
@@ -63,6 +64,8 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_confirmation_token ON orders(confirmation_token);
 
 -- 4. Order Items Table
 CREATE TABLE IF NOT EXISTS order_items (

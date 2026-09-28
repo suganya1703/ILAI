@@ -43,7 +43,15 @@ export default function AdminDashboardPage() {
   const [sendEmail, setSendEmail] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  const statusOptions: OrderStatus[] = ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"];
+  const statusOptions: OrderStatus[] = [
+    "Pending verification",
+    "Pending confirmation",
+    "Confirmed",
+    "Packed",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
 
   // Check auth session
   useEffect(() => {
@@ -131,6 +139,42 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Quick action: Confirm COD order
+  const handleQuickConfirmCod = async (order: Order) => {
+    const customNote = prompt(
+      `Confirm Cash on Delivery Order ${order.order_number}:\nEnter dispatch details or note:`,
+      "COD Order confirmed. Preparing package for dispatch."
+    );
+
+    if (customNote === null) return; // User cancelled prompt
+
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Confirmed",
+          delivery_note: customNote,
+          note: `COD Order confirmed by admin at ${new Date().toLocaleString("en-IN")}`,
+          send_confirmation_email: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert(`Order ${order.order_number} confirmed! Email notification sent.`);
+        fetchOrders();
+      } else {
+        alert(data.error || "Failed to confirm order");
+      }
+    } catch (err) {
+      alert("Error confirming COD order");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleUpdateStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingOrder) return;
@@ -210,7 +254,7 @@ export default function AdminDashboardPage() {
       <div className="bg-white p-4 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Status Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-          {["All", "Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"].map((st) => (
+          {["All", "Pending verification", "Pending confirmation", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -343,7 +387,7 @@ export default function AdminDashboardPage() {
 
                       {/* Actions Column */}
                       <td className="p-3.5 px-4 text-right space-x-2">
-                        {/* Quick Mark as Paid Button */}
+                        {/* Quick Mark as Paid Button for UPI */}
                         {isPendingUpi && (
                           <button
                             onClick={() => handleQuickMarkPaid(o)}
@@ -351,7 +395,19 @@ export default function AdminDashboardPage() {
                             title="Mark as Paid after manual UPI verification"
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>Mark as Paid</span>
+                            <span>Verify & Mark Paid</span>
+                          </button>
+                        )}
+
+                        {/* Quick Confirm Button for COD */}
+                        {o.payment_method === "cod" && (o.order_status === "Pending confirmation" || o.order_status === "Pending") && (
+                          <button
+                            onClick={() => handleQuickConfirmCod(o)}
+                            className="px-3 py-1.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-all text-xs shadow-sm inline-flex items-center gap-1"
+                            title="Confirm Cash on Delivery Order"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Confirm Order</span>
                           </button>
                         )}
 
@@ -453,7 +509,10 @@ export default function AdminDashboardPage() {
                 >
                   <option value="Pending verification">Pending verification</option>
                   <option value="Paid">Paid (Verified)</option>
-                  <option value="COD Pending">COD Pending</option>
+                  <option value="Cash on Delivery">Cash on Delivery</option>
+                  <option value="Pending confirmation">Pending confirmation</option>
+                  <option value="Pending">Pending</option>
+                  <option value="failed">Failed</option>
                 </select>
               </div>
 

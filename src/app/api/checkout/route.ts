@@ -7,7 +7,7 @@ import { productContent, getCurrentPrice } from "@/config/content";
 import { sendOrderReceivedEmail } from "@/lib/email";
 import { isValidTamilNaduPincode } from "@/lib/utils";
 import { saveLocalOrder, getNextLocalOrderNumber } from "@/lib/orders-store";
-import { OrderStatus } from "@/types";
+import { OrderStatus, PaymentStatus } from "@/types";
 
 async function getSequentialOrderNumber(): Promise<string> {
   if (isSupabaseConfigured) {
@@ -130,14 +130,18 @@ export async function POST(req: Request) {
 
     const totalAmount = subtotal + deliveryCharge;
 
-    // Payment Status for UPI/GPay is strictly "Pending verification" (never auto-confirm)
-    const initialPaymentStatus = validatedData.payment_method === "cod" ? "COD Pending" : "Pending verification";
-    const initialOrderStatus: OrderStatus = validatedData.payment_method === "cod" ? "Confirmed" : "Pending";
+    // 5. Payment and Order Status Wording (Never auto-confirm)
+    // UPI orders: "Pending verification". COD orders: "Pending confirmation".
+    const isCod = validatedData.payment_method === "cod";
+    const initialPaymentStatus: PaymentStatus = isCod ? "Cash on Delivery" : "Pending verification";
+    const initialOrderStatus: OrderStatus = isCod ? "Pending confirmation" : "Pending verification";
 
     // 6. Generate sequential Order ID (ILAI-2026-0001, ILAI-2026-0002, ...)
     const generatedOrderNumber = await getSequentialOrderNumber();
+    // Generate private unguessable confirmation token (UUID)
+    const confirmationToken = crypto.randomUUID();
 
-    // 7. Create Order Record in Supabase (if configured) or local store
+    // 7. Create Order Record in Supabase (persistent database)
     let createdOrder: any = null;
     if (isSupabaseConfigured) {
       try {
@@ -145,6 +149,7 @@ export async function POST(req: Request) {
           .from("orders")
           .insert({
             order_number: generatedOrderNumber,
+            confirmation_token: confirmationToken,
             customer_name: validatedData.customer_name,
             customer_email: validatedData.customer_email,
             customer_mobile: validatedData.customer_mobile,
@@ -162,18 +167,21 @@ export async function POST(req: Request) {
           .select("*")
           .single();
 
-        if (!orderError && order) {
+        if (orderError) {
+          console.error("[Supabase Orders Insert Error]:", orderError);
+        } else if (order) {
           createdOrder = order;
         }
       } catch (dbErr) {
-        console.warn("Database order insert fallback:", dbErr);
+        console.error("[Supabase Orders Exception]:", dbErr);
       }
     }
 
     if (!createdOrder) {
-      const generatedId = `order-${Date.now()}`;
+      const generatedId = crypto.randomUUID();
       createdOrder = {
         id: generatedId,
+        confirmation_token: confirmationToken,
         order_number: generatedOrderNumber,
         customer_name: validatedData.customer_name,
         customer_email: validatedData.customer_email,
@@ -204,30 +212,41 @@ export async function POST(req: Request) {
 
     if (isSupabaseConfigured) {
       try {
-        await supabaseAdmin.from("order_items").insert(orderItemRecords);
+        const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItemRecords);
+        if (itemsErr) console.error("[Supabase Order Items Insert Error]:", itemsErr);
+
         await supabaseAdmin.from("order_status_history").insert({
           order_id: createdOrder.id,
           status: initialOrderStatus,
-          note: validatedData.payment_method === "cod" ? "Order confirmed via Cash on Delivery" : "UPI payment submitted - Pending verification",
+          note: isCod
+            ? "Order received - Pending confirmation (COD)"
+            : "UPI payment submitted - Pending verification",
         });
       } catch (e) {
-        console.warn("DB item/history insertion fallback:", e);
+        console.error("[Supabase Items/History Exception]:", e);
       }
     }
 
-    // 8. Persist Order in Local Store (Ensures reliability in local dev & production)
-    const fullOrderForEmail = { ...createdOrder, order_items: orderItemRecords };
+    // 8. Persist Order in Local Store (Secondary fallback for offline dev)
+    const fullOrderForEmail = {
+      ...createdOrder,
+      confirmation_token: createdOrder.confirmation_token || confirmationToken,
+      order_items: orderItemRecords,
+    };
     saveLocalOrder(fullOrderForEmail);
 
     // 9. Send Automatic Email to Customer Asynchronously (non-blocking so customer checkout never hangs)
     sendOrderReceivedEmail(fullOrderForEmail).catch((e) => {
-      console.warn("[Email Notification Error] Could not send order received email:", e);
+      console.error("[Email Notification Error] Could not send order received email to customer:", e);
     });
+
+    const finalToken = createdOrder.confirmation_token || confirmationToken;
 
     return NextResponse.json({
       success: true,
       orderId: createdOrder.id,
       orderNumber: createdOrder.order_number,
+      confirmationToken: finalToken,
       totalAmount,
       paymentMethod: validatedData.payment_method,
     });

@@ -1,10 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { CheckCircle2, Package, Truck, ArrowRight, ShieldCheck, Mail, MapPin, QrCode, Clock } from "lucide-react";
+import { CheckCircle2, Package, Truck, ArrowRight, ShieldCheck, Mail, MapPin, QrCode, Clock, AlertCircle } from "lucide-react";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { formatINR } from "@/lib/utils";
 import { getLocalOrder } from "@/lib/orders-store";
 import { siteConfig } from "@/config/site";
+import { productContent } from "@/config/content";
 import { Order } from "@/types";
 
 export const revalidate = 0;
@@ -20,55 +21,76 @@ export default async function OrderConfirmationPage({
 
   if (isSupabaseConfigured) {
     try {
-      const { data: order } = (await supabaseAdmin
+      // 1. Try finding order by unguessable confirmation_token (UUID)
+      const { data: byToken, error: tokenErr } = await supabaseAdmin
         .from("orders")
         .select("*, order_items(*)")
-        .eq("id", id)
-        .single()) as { data: Order | null };
+        .eq("confirmation_token", id)
+        .maybeSingle();
 
-      orderData = order;
+      if (!tokenErr && byToken) {
+        orderData = byToken;
+      } else {
+        // 2. Fallback to order id
+        const { data: byId } = await supabaseAdmin
+          .from("orders")
+          .select("*, order_items(*)")
+          .eq("id", id)
+          .maybeSingle();
+        if (byId) orderData = byId;
+      }
     } catch (e) {
       console.warn("Order confirmation DB fetch fallback:", e);
     }
   }
 
-  // Retrieve from local persistent orders store if not in Supabase
+  // 3. Retrieve from local persistent orders store if not found in Supabase
   if (!orderData && id) {
     orderData = getLocalOrder(id);
   }
 
-  // If still not found, construct fallback based on id
+  // If order was not found at all, display a helpful Order Not Found screen
+  // instead of rendering empty customer details or dummy mock data
   if (!orderData) {
-    orderData = {
-      id: id || "demo-1",
-      order_number: id.startsWith("ILAI-") ? id : "ILAI-2026-0001",
-      customer_name: "Customer",
-      customer_email: "",
-      customer_mobile: "",
-      address_line: "Delivery Address",
-      city: "Tamil Nadu",
-      state: "Tamil Nadu",
-      pincode: "",
-      payment_method: "upi",
-      payment_status: "Pending verification",
-      order_status: "Pending",
-      subtotal: 60,
-      delivery_charge: 40,
-      total_amount: 100,
-      created_at: new Date().toISOString(),
-      order_items: [
-        {
-          product_id: "ilai-sanitary-pad",
-          product_name: "ILAI Eco-Friendly Sanitary Pads",
-          unit_price: 60,
-          quantity: 1,
-          total_price: 60,
-        },
-      ],
-    };
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 space-y-6 text-center bg-[#F6F2E6]">
+        <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto border border-amber-300 shadow-sm">
+          <AlertCircle className="w-9 h-9" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263618]">
+            Order Not Found
+          </h1>
+          <p className="text-sm text-[#5F6F50] max-w-md mx-auto">
+            We could not find the order details for this link. If you recently placed an order, please check your email for the confirmation link or track your order with your registered mobile number.
+          </p>
+        </div>
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/track"
+            className="w-full sm:w-auto px-6 py-3.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md inline-flex items-center justify-center gap-2"
+          >
+            <Truck className="w-4 h-4" />
+            <span>Track Order</span>
+          </Link>
+          <Link
+            href="/"
+            className="w-full sm:w-auto px-6 py-3.5 bg-white text-[#263618] font-semibold border border-[#E2DCCB] rounded-xl hover:bg-[#EDE8D8] transition-colors text-sm inline-flex items-center justify-center"
+          >
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const isUpi = orderData.payment_method === "upi" || orderData.payment_method === "upi_gpay" || orderData.payment_method === "razorpay";
+  const isUpi = orderData.payment_method === "upi" || orderData.payment_method === "upi_gpay";
+  const isCod = orderData.payment_method === "cod";
+  const isPendingVerification = orderData.payment_status === "Pending verification" || orderData.order_status === "Pending verification";
+
+  // Clean Order ID & mobile for the track order link to prevent double prefix
+  const cleanOrderNumber = (orderData.order_number || "").replace(/^(IL)+ILAI-/i, "ILAI-");
+  const cleanMobile = (orderData.customer_mobile || "").replace(/\D/g, "").slice(-10);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8 bg-[#F6F2E6]">
@@ -79,21 +101,27 @@ export default async function OrderConfirmationPage({
         </div>
         <div className="space-y-1">
           <span className="text-xs font-bold text-[#506638] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-[#E2DCCB]">
-            {isUpi ? "Order Submitted - Pending Verification" : "Order Confirmed (COD)"}
+            {orderData.order_status === "Confirmed"
+              ? "Order Confirmed"
+              : isCod
+              ? "Order Received - Pending Confirmation"
+              : "Order Submitted - Pending Verification"}
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263618]">
             Thank You for Choosing ILAI!
           </h1>
-          <p className="text-[#5F6F50] text-xs sm:text-sm max-w-md mx-auto">
-            Order confirmation & details sent to <strong>{orderData.customer_email}</strong>.
-          </p>
+          {orderData.customer_email && (
+            <p className="text-[#5F6F50] text-xs sm:text-sm max-w-md mx-auto">
+              Order confirmation & details sent to <strong>{orderData.customer_email}</strong>.
+            </p>
+          )}
         </div>
 
         {/* Order ID & Server Calculated Total Amount Badge */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <div className="bg-white px-5 py-2.5 rounded-2xl border border-[#E2DCCB] shadow-sm text-left">
             <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Order ID</span>
-            <span className="text-xl font-extrabold text-[#506638] tracking-tight">{orderData.order_number}</span>
+            <span className="text-xl font-extrabold text-[#506638] tracking-tight">{cleanOrderNumber}</span>
           </div>
           <div className="bg-white px-5 py-2.5 rounded-2xl border border-[#E2DCCB] shadow-sm text-left">
             <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Total Amount (Server Calculated)</span>
@@ -102,16 +130,25 @@ export default async function OrderConfirmationPage({
         </div>
       </div>
 
-      {/* Required Exact Message Callout Banner */}
+      {/* Required Message Callout Banner */}
       <div className="bg-white border-l-4 border-[#506638] border-[#E2DCCB] border-t border-r border-b rounded-2xl p-5 sm:p-6 shadow-sm space-y-2">
         <p className="font-bold text-[#263618] text-base">🌿 Thank you for choosing ILAI!</p>
-        <p className="text-sm text-[#263618]">We have received your order and payment details.</p>
-        <p className="text-sm text-[#263618]">Our team will verify your payment and confirm your order as soon as possible.</p>
-        <p className="text-sm text-[#506638] font-semibold">Your order confirmation and delivery details will be shared once the payment is verified.</p>
+        {isCod ? (
+          <>
+            <p className="text-sm text-[#263618]">Order received. Pay cash on delivery. We will confirm your order shortly.</p>
+            <p className="text-sm text-[#506638] font-semibold">Our team will verify your address and prepare your package for dispatch across Tamil Nadu.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[#263618]">We have received your order and payment details.</p>
+            <p className="text-sm text-[#263618]">Our team will verify your payment and confirm your order as soon as possible.</p>
+            <p className="text-sm text-[#506638] font-semibold">Your order confirmation and delivery details will be shared once the payment is verified.</p>
+          </>
+        )}
       </div>
 
-      {/* UPI QR Code Section for UPI / GPay Orders */}
-      {isUpi && (
+      {/* UPI QR Code Section: Strictly only shown for UPI orders in "Pending verification" */}
+      {isUpi && isPendingVerification && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2DCCB] shadow-sm text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EDE8D8] text-[#506638] text-xs font-bold border border-[#E2DCCB]">
             <QrCode className="w-4 h-4 text-[#506638]" />
@@ -123,7 +160,7 @@ export default async function OrderConfirmationPage({
 
           <div className="w-64 h-64 mx-auto rounded-2xl overflow-hidden border-2 border-[#E2DCCB] p-2 bg-white shadow-md">
             <img
-              src={siteConfig.upiQrImage}
+              src={`/api/orders/${orderData.confirmation_token || orderData.id}/qr`}
               alt="ILAI GPay UPI QR Code"
               className="w-full h-full object-contain"
             />
@@ -146,27 +183,30 @@ export default async function OrderConfirmationPage({
           </h2>
 
           <div className="space-y-3">
-            {orderData.order_items?.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm border-b border-[#E2DCCB]/60 pb-3 gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E2DCCB] shrink-0 bg-white">
-                    <img
-                      src="/images/ilai-box-front.jpg"
-                      alt={item.product_name}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/product.jpg";
-                      }}
-                      className="w-full h-full object-cover"
-                    />
+            {orderData.order_items && orderData.order_items.length > 0 ? (
+              orderData.order_items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm border-b border-[#E2DCCB]/60 pb-3 gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E2DCCB] shrink-0 bg-white">
+                      <img
+                        src={productContent.images?.[0] || "/images/product/ilai-pad-1.jpg"}
+                        alt={item.product_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#263618]">{item.product_name}</p>
+                      <p className="text-xs text-[#5F6F50]">Qty: {item.quantity} pack(s) (6 pads/pack)</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-[#263618]">{item.product_name}</p>
-                    <p className="text-xs text-[#5F6F50]">Qty: {item.quantity} pack(s) (6 pads/pack)</p>
-                  </div>
+                  <span className="font-bold text-[#263618]">{formatINR(item.total_price)}</span>
                 </div>
-                <span className="font-bold text-[#263618]">{formatINR(item.total_price)}</span>
+              ))
+            ) : (
+              <div className="text-xs text-[#5F6F50] py-2">
+                ILAI Eco-Friendly Sanitary Pads (1 pack)
               </div>
-            ))}
+            )}
           </div>
 
           <div className="space-y-2 text-sm pt-2">
@@ -204,7 +244,7 @@ export default async function OrderConfirmationPage({
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#5F6F50]">Payment Method:</span>
                 <span className="font-bold text-[#263618]">
-                  {orderData.payment_method === "cod" ? "Cash on Delivery (COD)" : "Pay via UPI / GPay"}
+                  {isCod ? "Cash on Delivery (COD)" : "Pay via UPI / GPay"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -218,18 +258,16 @@ export default async function OrderConfirmationPage({
                 <span className={`font-bold px-2.5 py-0.5 rounded-full text-[11px] border ${
                   orderData.order_status === "Confirmed"
                     ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                    : orderData.order_status === "Pending"
-                    ? "bg-amber-100 text-amber-900 border-amber-300"
-                    : "bg-[#EDE8D8] text-[#506638] border-[#E2DCCB]"
+                    : "bg-amber-100 text-amber-900 border-amber-300"
                 }`}>
-                  {orderData.order_status === "Pending" ? "Pending Verification" : orderData.order_status}
+                  {orderData.order_status}
                 </span>
               </div>
             </div>
           </div>
 
           <Link
-            href={`/track?id=${orderData.order_number}&mobile=${orderData.customer_mobile}`}
+            href={`/track?id=${encodeURIComponent(cleanOrderNumber)}&mobile=${encodeURIComponent(cleanMobile)}`}
             className="w-full py-3.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md flex items-center justify-center gap-2"
           >
             <Truck className="w-4 h-4" />

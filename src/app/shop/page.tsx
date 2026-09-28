@@ -6,12 +6,12 @@ import { Plus, Minus, ShoppingBag, Zap, CheckCircle2, Sparkles } from "lucide-re
 import { productContent, getPricingInfo } from "@/config/content";
 import { useCart } from "@/components/cart-provider";
 import { formatINR } from "@/lib/utils";
+import { ProductGallery } from "@/components/product-gallery";
 
 export default function ShopPage() {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"details" | "howToUse" | "disposal">("details");
   const [addedNotice, setAddedNotice] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const router = useRouter();
   const { addItem } = useCart();
@@ -20,10 +20,10 @@ export default function ShopPage() {
   const productImages = productContent.images && productContent.images.length > 0 
     ? productContent.images 
     : [
-        "/images/ilai-box-front.jpg",
-        "/images/ilai-box-inside.jpg",
-        "/images/ilai-single-pad.png",
-        "/images/ilai-box-back.jpg",
+        "/images/product/ilai-pad-1.jpg",
+        "/images/product/ilai-pad-2.jpg",
+        "/images/product/ilai-pad-3.jpg",
+        "/images/product/ilai-pad-4.jpg",
       ];
 
   const productObj = {
@@ -61,40 +61,11 @@ export default function ShopPage() {
       {/* Product Hero Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Column: Product Image Gallery */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="relative overflow-hidden rounded-2xl bg-white border border-[#E2DCCB] shadow-sm aspect-square flex items-center justify-center p-2">
-            <img
-              src={productImages[selectedImageIndex]}
-              alt={productContent.name}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/images/product.jpg";
-              }}
-              className="w-full h-full object-cover rounded-xl transition-all duration-300"
-            />
-          </div>
-
-          {/* Thumbnails list */}
-          {productImages.length > 1 && (
-            <div className="flex items-center gap-3">
-              {productImages.map((imgSrc, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all bg-white p-1 ${
-                    selectedImageIndex === idx
-                      ? "border-[#506638] ring-2 ring-[#EDE8D8] shadow-sm"
-                      : "border-[#E2DCCB] opacity-70 hover:opacity-100"
-                  }`}
-                >
-                  <img
-                    src={imgSrc}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-6">
+          <ProductGallery
+            images={productImages}
+            productName={productContent.name}
+          />
         </div>
 
         {/* Right Column: Buying Options */}

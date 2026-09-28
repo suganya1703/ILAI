@@ -49,6 +49,11 @@ export function getMailTransporter(): Transporter | null {
  * Subject: "We've received your ILAI order [Order ID]"
  */
 export async function sendOrderReceivedEmail(order: Order): Promise<{ success: boolean; data?: any; error?: string }> {
+  if (!order.customer_email || !order.customer_email.trim()) {
+    console.warn(`[Gmail SMTP Warning] Cannot send order received email: customer_email is blank for order ${order.order_number}`);
+    return { success: false, error: "Customer email is blank" };
+  }
+
   const transporter = getMailTransporter();
 
   if (!transporter) {
@@ -58,6 +63,14 @@ export async function sendOrderReceivedEmail(order: Order): Promise<{ success: b
   }
 
   try {
+    const isCod = order.payment_method === "cod";
+    const cleanNum = (order.order_number || "").replace(/^(IL)+ILAI-/i, "ILAI-");
+    const cleanMob = (order.customer_mobile || "").replace(/\D/g, "").slice(-10);
+    const trackUrl = `${siteConfig.url}/track?id=${encodeURIComponent(cleanNum)}&mobile=${encodeURIComponent(cleanMob)}`;
+    const confirmUrl = order.confirmation_token
+      ? `${siteConfig.url}/order-confirmation/${order.confirmation_token}`
+      : `${siteConfig.url}/order-confirmation/${order.id}`;
+
     const itemsListHtml = (order.order_items || [])
       .map(
         (item) => `
@@ -74,6 +87,31 @@ export async function sendOrderReceivedEmail(order: Order): Promise<{ success: b
           </tr>`
       )
       .join("");
+
+    const calloutHtml = isCod
+      ? `
+        <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 700; color: #506638;">
+          🌿 Thank you for choosing ILAI!
+        </p>
+        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5; color: #263618;">
+          Order received. Pay cash on delivery. We will confirm your order shortly.
+        </p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #263618;">
+          Our team will verify your delivery address and dispatch your package across Tamil Nadu.
+        </p>`
+      : `
+        <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 700; color: #506638;">
+          🌿 Thank you for choosing ILAI!
+        </p>
+        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5; color: #263618;">
+          We have received your order and payment details.
+        </p>
+        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5; color: #263618;">
+          Our team will verify your payment and confirm your order as soon as possible.
+        </p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #263618;">
+          Your order confirmation and delivery details will be shared once the payment is verified.
+        </p>`;
 
     const html = `
 <!DOCTYPE html>
@@ -97,36 +135,25 @@ export async function sendOrderReceivedEmail(order: Order): Promise<{ success: b
       
       <!-- Thank You & Verification Callout -->
       <div style="background-color: #F4F1EA; border-left: 4px solid #506638; border-radius: 6px; padding: 18px 20px; margin-bottom: 24px;">
-        <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 700; color: #506638;">
-          🌿 Thank you for choosing ILAI!
-        </p>
-        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5; color: #263618;">
-          We have received your order and payment details.
-        </p>
-        <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5; color: #263618;">
-          Our team will verify your payment and confirm your order as soon as possible.
-        </p>
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #263618;">
-          Your order confirmation and delivery details will be shared once the payment is verified.
-        </p>
+        ${calloutHtml}
       </div>
 
       <!-- Order Meta Badge -->
       <table style="width: 100%; background-color: #FAFAF7; border: 1px solid #E2DCCB; border-radius: 8px; padding: 14px; margin-bottom: 24px; border-collapse: separate;">
         <tr>
           <td style="font-size: 13px; color: #5F6F50;">Order ID:</td>
-          <td style="font-size: 15px; font-weight: 700; color: #506638; text-align: right;">${escapeHtml(order.order_number)}</td>
+          <td style="font-size: 15px; font-weight: 700; color: #506638; text-align: right;">${escapeHtml(cleanNum)}</td>
         </tr>
         <tr>
           <td style="font-size: 13px; color: #5F6F50; padding-top: 6px;">Payment Method:</td>
           <td style="font-size: 13px; font-weight: 600; color: #263618; text-align: right; padding-top: 6px;">
-            ${order.payment_method === 'cod' ? 'Cash on Delivery (COD)' : 'UPI / GPay'}
+            ${isCod ? 'Cash on Delivery (COD)' : 'UPI / GPay'}
           </td>
         </tr>
         <tr>
-          <td style="font-size: 13px; color: #5F6F50; padding-top: 6px;">Payment Status:</td>
+          <td style="font-size: 13px; color: #5F6F50; padding-top: 6px;">Status:</td>
           <td style="font-size: 12px; font-weight: 700; color: #92400E; text-align: right; padding-top: 6px;">
-            <span style="background-color: #FEF3C7; padding: 3px 8px; border-radius: 10px;">${escapeHtml(order.payment_status)}</span>
+            <span style="background-color: #FEF3C7; padding: 3px 8px; border-radius: 10px;">${escapeHtml(order.order_status)}</span>
           </td>
         </tr>
       </table>
@@ -175,7 +202,7 @@ export async function sendOrderReceivedEmail(order: Order): Promise<{ success: b
       <!-- Footer Info -->
       <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #E2DCCB; text-align: center; font-size: 12px; color: #5F6F50; line-height: 1.6;">
         <p style="margin: 0 0 6px 0;">
-          Track your order status anytime at <a href="${siteConfig.url}/track" style="color: #506638; font-weight: 700; text-decoration: underline;">${siteConfig.domain}/track</a>
+          Track your order status anytime at <a href="${trackUrl}" style="color: #506638; font-weight: 700; text-decoration: underline;">${siteConfig.domain}/track</a>
         </p>
         <p style="margin: 0;">
           Need assistance? Simply reply to this email or reach us at <a href="mailto:${REPLY_TO_EMAIL}" style="color: #506638; font-weight: 600;">${REPLY_TO_EMAIL}</a>.
