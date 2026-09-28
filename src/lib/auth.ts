@@ -65,7 +65,11 @@ export async function authenticateAdmin(
     // Database table may not be migrated yet or offline in dev
   }
 
-  // 3. Verify against secure hashed credentials in environment
+  // 3. Verify against direct ADMIN_PASSWORD or hashed credentials in environment
+  if (process.env.ADMIN_PASSWORD && passwordInput === process.env.ADMIN_PASSWORD) {
+    return { success: true, email: configuredEmail };
+  }
+
   const activeSalt = process.env.ADMIN_PASSWORD_SALT;
   const activeHash = process.env.ADMIN_PASSWORD_HASH;
 
