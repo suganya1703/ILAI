@@ -12,35 +12,52 @@ let cachedTransporter: Transporter | null = null;
 let lastTransporterKey = "";
 
 export function getMailTransporter(): Transporter | null {
-  const user = process.env.GMAIL_SMTP_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const user = (process.env.GMAIL_SMTP_USER || "").trim();
+  const rawPass = (process.env.GMAIL_APP_PASSWORD || "").trim();
 
-  if (!user || !pass || pass === "your_gmail_app_password_here" || pass.includes("placeholder")) {
+  if (!user || !rawPass || rawPass === "your_gmail_app_password_here" || rawPass.includes("placeholder")) {
     return null;
   }
 
-  const host = process.env.GMAIL_SMTP_HOST || "smtp.gmail.com";
-  const port = Number(process.env.GMAIL_SMTP_PORT) || 587;
+  // Strip spaces if user pasted "xxxx yyyy zzzz wwww" format
+  const pass = rawPass.replace(/\s+/g, "").trim();
+
+  const host = (process.env.GMAIL_SMTP_HOST || "smtp.gmail.com").trim();
+  const port = Number(process.env.GMAIL_SMTP_PORT) || 465;
   const currentKey = `${host}:${port}:${user}:${pass}`;
 
   if (cachedTransporter && lastTransporterKey === currentKey) {
     return cachedTransporter;
   }
 
-  cachedTransporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for 587 (uses STARTTLS)
-    auth: {
-      user,
-      pass,
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
-  lastTransporterKey = currentKey;
+  // Use nodemailer's native Gmail service configuration for maximum compatibility on cloud/Vercel
+  if (host === "smtp.gmail.com" || user.endsWith("@gmail.com")) {
+    cachedTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  } else {
+    cachedTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
 
+  lastTransporterKey = currentKey;
   return cachedTransporter;
 }
 

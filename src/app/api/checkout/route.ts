@@ -235,10 +235,15 @@ export async function POST(req: Request) {
     };
     saveLocalOrder(fullOrderForEmail);
 
-    // 9. Send Automatic Email to Customer Asynchronously (non-blocking so customer checkout never hangs)
-    sendOrderReceivedEmail(fullOrderForEmail).catch((e) => {
-      console.error("[Email Notification Error] Could not send order received email to customer:", e);
-    });
+    // 9. Send Automatic Email to Customer (awaited so Vercel keeps the lambda alive until email dispatch completes)
+    try {
+      const emailResult = await sendOrderReceivedEmail(fullOrderForEmail);
+      if (!emailResult.success) {
+        console.warn("[Email Notification Notice]:", emailResult.error);
+      }
+    } catch (e) {
+      console.error("[Email Notification Exception]:", e);
+    }
 
     const finalToken = createdOrder.confirmation_token || confirmationToken;
 

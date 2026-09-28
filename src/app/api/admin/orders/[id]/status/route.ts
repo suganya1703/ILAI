@@ -68,11 +68,13 @@ export async function PATCH(
       }
     }
 
-    // Trigger Manual Confirmation Email asynchronously if requested or if marked as Paid
+    // Trigger Confirmation Email if requested or if marked as Paid
     if (send_confirmation_email || payment_status === "Paid") {
-      sendPaymentConfirmedEmail(updatedOrder, delivery_note || note).catch((emailErr) => {
+      try {
+        await sendPaymentConfirmedEmail(updatedOrder, delivery_note || note);
+      } catch (emailErr) {
         console.warn("Manual payment confirmation email fallback:", emailErr);
-      });
+      }
     }
 
     return NextResponse.json({ success: true, order: updatedOrder });
