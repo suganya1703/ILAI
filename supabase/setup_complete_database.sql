@@ -1,14 +1,14 @@
 -- ==============================================================================
--- ILAI E-COMMERCE: SUPABASE SCHEMA & MIGRATION (SAFE FOR NEW & EXISTING PROJECTS)
+-- ILAI E-COMMERCE: COMPLETE SUPABASE SETUP SCRIPT (FOR NEW OR EXISTING PROJECTS)
 -- ==============================================================================
 -- Paste this entire file into your Supabase SQL Editor and click "Run" (green button).
--- It safely creates all necessary tables, columns, indexes, and permissions.
+-- It will create all tables, indexes, security policies, and initial store settings.
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Store Settings Table
+-- 2. Store Settings Table (Single-row configuration)
 CREATE TABLE IF NOT EXISTS store_settings (
   id INT PRIMARY KEY DEFAULT 1,
   delivery_charge NUMERIC(10,2) NOT NULL DEFAULT 40.00,
@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
   CONSTRAINT single_row_check CHECK (id = 1)
 );
 
+-- Seed initial settings row if not present
 INSERT INTO store_settings (id, delivery_charge, min_packs_per_order, cod_enabled, estimated_delivery_time, store_contact_email, store_whatsapp)
 VALUES (1, 40.00, 1, TRUE, '2-5 working days', 'info.ilaiofficial@gmail.com', '+918300815220')
 ON CONFLICT (id) DO NOTHING;
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Seed default product
 INSERT INTO products (id, slug, name, subtitle, price, pack_quantity, stock_quantity, is_available)
 VALUES (
   'e2b4f74d-9051-419b-a3d5-e366da2b8b99',
@@ -57,7 +59,7 @@ ON CONFLICT (slug) DO UPDATE SET
   price = EXCLUDED.price,
   pack_quantity = EXCLUDED.pack_quantity;
 
--- 4. Orders Table (Created if not existing)
+-- 4. Orders Table
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   confirmation_token UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -69,11 +71,11 @@ CREATE TABLE IF NOT EXISTS orders (
   city TEXT NOT NULL,
   state TEXT NOT NULL,
   pincode TEXT NOT NULL,
-  payment_method TEXT NOT NULL,
-  payment_status TEXT NOT NULL DEFAULT 'Pending verification',
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('upi', 'upi_gpay', 'cod', 'razorpay')),
+  payment_status TEXT NOT NULL DEFAULT 'Pending verification' CHECK (payment_status IN ('Pending verification', 'Paid', 'COD Pending', 'pending', 'paid', 'failed', 'Cash on Delivery', 'Pending confirmation', 'Pending')),
   razorpay_order_id TEXT,
   razorpay_payment_id TEXT,
-  order_status TEXT NOT NULL DEFAULT 'Pending verification',
+  order_status TEXT NOT NULL DEFAULT 'Pending verification' CHECK (order_status IN ('Pending verification', 'Pending confirmation', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled')),
   tracking_number TEXT,
   courier_name TEXT,
   subtotal NUMERIC(10,2) NOT NULL,
@@ -83,32 +85,16 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Ensure confirmation_token column exists if table was pre-existing
+-- Ensure confirmation_token column and unique index exist
 DO $$ 
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'orders' AND column_name = 'confirmation_token'
   ) THEN
-    ALTER TABLE orders ADD COLUMN confirmation_token UUID DEFAULT gen_random_uuid();
-    UPDATE orders SET confirmation_token = gen_random_uuid() WHERE confirmation_token IS NULL;
-    ALTER TABLE orders ALTER COLUMN confirmation_token SET NOT NULL;
+    ALTER TABLE orders ADD COLUMN confirmation_token UUID DEFAULT gen_random_uuid() NOT NULL;
   END IF;
 END $$;
-
--- Update constraints safely
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_method_check;
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_status_check;
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_status_check;
-
-ALTER TABLE orders ADD CONSTRAINT orders_payment_method_check 
-  CHECK (payment_method IN ('upi', 'upi_gpay', 'cod', 'razorpay'));
-
-ALTER TABLE orders ADD CONSTRAINT orders_payment_status_check 
-  CHECK (payment_status IN ('Pending verification', 'Paid', 'COD Pending', 'pending', 'paid', 'failed', 'Cash on Delivery', 'Pending confirmation', 'Pending'));
-
-ALTER TABLE orders ADD CONSTRAINT orders_order_status_check 
-  CHECK (order_status IN ('Pending verification', 'Pending confirmation', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'));
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_confirmation_token ON orders(confirmation_token);
 CREATE INDEX IF NOT EXISTS idx_orders_number_mobile ON orders(order_number, customer_mobile);
@@ -133,7 +119,7 @@ CREATE TABLE IF NOT EXISTS order_status_history (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Sequence & Function to Auto-generate Order Numbers
+-- 7. Sequence & Function to Auto-generate Order Numbers (ILAI-2026-0001)
 CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
 
 CREATE OR REPLACE FUNCTION get_next_order_number()
@@ -159,13 +145,14 @@ BEFORE INSERT ON orders
 FOR EACH ROW
 EXECUTE FUNCTION generate_order_number();
 
--- 8. Row Level Security Policies
+-- 8. Row Level Security (RLS) Policies
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_status_history ENABLE ROW LEVEL SECURITY;
 
+-- Drop old policies to prevent collision
 DROP POLICY IF EXISTS "Public Read Products" ON products;
 DROP POLICY IF EXISTS "Public Read Settings" ON store_settings;
 DROP POLICY IF EXISTS "Public Create Orders" ON orders;
@@ -174,6 +161,7 @@ DROP POLICY IF EXISTS "Public Select Track Order" ON orders;
 DROP POLICY IF EXISTS "Public Select Track Items" ON order_items;
 DROP POLICY IF EXISTS "Public Select Order Status History" ON order_status_history;
 
+-- Create Policies
 CREATE POLICY "Public Read Products" ON products FOR SELECT USING (true);
 CREATE POLICY "Public Read Settings" ON store_settings FOR SELECT USING (true);
 CREATE POLICY "Public Create Orders" ON orders FOR INSERT WITH CHECK (true);
@@ -182,7 +170,7 @@ CREATE POLICY "Public Select Track Order" ON orders FOR SELECT USING (true);
 CREATE POLICY "Public Select Track Items" ON order_items FOR SELECT USING (true);
 CREATE POLICY "Public Select Order Status History" ON order_status_history FOR SELECT USING (true);
 
--- 9. Admin Users Table
+-- 9. Admin Users Table (Accessible only via backend Service Role)
 CREATE TABLE IF NOT EXISTS admin_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
