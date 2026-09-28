@@ -74,7 +74,7 @@ export default function ContactPage() {
             className="w-full py-3 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md inline-flex items-center justify-center gap-2"
           >
             <Instagram className="w-4 h-4" />
-            <span>@ilai.care</span>
+            <span>@_ilai_off</span>
           </a>
         </div>
       </div>

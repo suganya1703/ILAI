@@ -1,10 +1,26 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { Order } from "@/types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// Determine data directory: use OS temp dir on serverless/Vercel, otherwise local /data
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production");
+const DATA_DIR = isServerless
+  ? path.join(os.tmpdir(), "ilai-data")
+  : path.join(process.cwd(), "data");
+
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const COUNTER_FILE = path.join(DATA_DIR, "order-counter.json");
+
+// In-memory fallback cache across lambda invocations in the same container
+declare global {
+  // eslint-disable-next-line no-var
+  var __inMemoryOrders: Order[] | undefined;
+}
+
+if (!globalThis.__inMemoryOrders) {
+  globalThis.__inMemoryOrders = [];
+}
 
 export function getNextLocalOrderNumber(): string {
   ensureFileExists();
@@ -60,15 +76,35 @@ function ensureFileExists() {
 export function getAllLocalOrders(): Order[] {
   try {
     ensureFileExists();
-    const content = fs.readFileSync(ORDERS_FILE, "utf8");
-    return JSON.parse(content) || [];
+    if (fs.existsSync(ORDERS_FILE)) {
+      const content = fs.readFileSync(ORDERS_FILE, "utf8");
+      const diskOrders = JSON.parse(content) || [];
+      const mergedMap = new Map<string, Order>();
+      (globalThis.__inMemoryOrders || []).forEach((o) => mergedMap.set(o.id || o.order_number, o));
+      diskOrders.forEach((o: Order) => mergedMap.set(o.id || o.order_number, o));
+      return Array.from(mergedMap.values());
+    }
   } catch (err) {
     console.warn("Error reading local orders file:", err);
-    return [];
   }
+  return globalThis.__inMemoryOrders || [];
 }
 
 export function saveLocalOrder(order: Order): void {
+  if (!globalThis.__inMemoryOrders) globalThis.__inMemoryOrders = [];
+  const memIdx = globalThis.__inMemoryOrders.findIndex(
+    (o) => o.id === order.id || o.order_number === order.order_number
+  );
+  if (memIdx >= 0) {
+    globalThis.__inMemoryOrders[memIdx] = {
+      ...globalThis.__inMemoryOrders[memIdx],
+      ...order,
+      updated_at: new Date().toISOString(),
+    };
+  } else {
+    globalThis.__inMemoryOrders.unshift(order);
+  }
+
   try {
     ensureFileExists();
     const orders = getAllLocalOrders();
@@ -78,11 +114,11 @@ export function saveLocalOrder(order: Order): void {
     if (existingIndex >= 0) {
       orders[existingIndex] = { ...orders[existingIndex], ...order, updated_at: new Date().toISOString() };
     } else {
-      orders.unshift(order); // Add to top
+      orders.unshift(order);
     }
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), "utf8");
   } catch (err) {
-    console.warn("Error saving local order:", err);
+    console.warn("Error saving local order to disk:", err);
   }
 }
 

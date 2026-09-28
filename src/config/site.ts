@@ -9,11 +9,11 @@ export const siteConfig = {
   subtagline: "Gentle on you, kind to the Earth — crafted from banana fibre & water hyacinth.",
   domain: "ilai.in",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://ilai.in",
-  contactEmail: "support@ilai.in",
+  contactEmail: "info.ilaiofficial@gmail.com",
   contactPhone: `+91 ${rawPhoneNumber.slice(0, 5)} ${rawPhoneNumber.slice(5)}`, // "+91 83008 15220" for customer display
   whatsappNumber: `91${rawPhoneNumber}`, // "918300815220" for wa.me links & WhatsApp API
   whatsappMessage: "Hello ILAI team, I have an inquiry regarding your biodegradable sanitary pads.",
-  instagramUrl: "https://instagram.com/ilai.care",
+  instagramUrl: "https://instagram.com/_ilai_off",
   upiId: "suganyasubramaniam1727@okaxis",
   getUpiQrUrl: (token: string) => `/api/orders/${token}/qr`,
   currencySymbol: "₹",
