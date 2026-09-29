@@ -32,6 +32,45 @@ async function getCryptoKey(): Promise<CryptoKey> {
   );
 }
 
+// Universal Edge & Node-compatible base64url helpers
+function toBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(str, "utf8")
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    }
+  } catch (e) {}
+
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function fromBase64Url(base64url: string): string {
+  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+  try {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(base64, "base64").toString("utf8");
+    }
+  } catch (e) {}
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 /**
  * Sign an admin session payload into a tamper-proof token: <base64UrlPayload>.<hexSignature>
  */
@@ -44,11 +83,7 @@ export async function createAdminToken(email: string): Promise<string> {
   };
 
   const payloadStr = JSON.stringify(payload);
-  const base64Payload = Buffer.from(payloadStr, "utf8")
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  const base64Payload = toBase64Url(payloadStr);
 
   const key = await getCryptoKey();
   const enc = new TextEncoder();
@@ -104,8 +139,7 @@ export async function verifyAdminToken(
     }
 
     // Decode and verify expiration
-    const base64Standard = base64Payload.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonStr = Buffer.from(base64Standard, "base64").toString("utf8");
+    const jsonStr = fromBase64Url(base64Payload);
     const payload = JSON.parse(jsonStr);
 
     if (!payload || typeof payload !== "object") {

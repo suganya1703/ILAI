@@ -11,9 +11,13 @@ export async function middleware(req: NextRequest) {
     if (pathname === "/admin/login") {
       const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
       if (token) {
-        const { valid } = await verifyAdminToken(token);
-        if (valid) {
-          return NextResponse.redirect(new URL("/admin", req.url));
+        try {
+          const { valid } = await verifyAdminToken(token);
+          if (valid) {
+            return NextResponse.redirect(new URL("/admin", req.url));
+          }
+        } catch (e) {
+          // Token invalid, allow login page
         }
       }
     }
@@ -32,7 +36,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // 3. Verify session token
-  const { valid } = await verifyAdminToken(token);
+  let valid = false;
+  if (token) {
+    try {
+      const result = await verifyAdminToken(token);
+      valid = Boolean(result.valid);
+    } catch (e) {
+      valid = false;
+    }
+  }
 
   // 4. API routes: return 401 JSON if unauthorized
   if (pathname.startsWith("/api/admin")) {

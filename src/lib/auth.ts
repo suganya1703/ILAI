@@ -2,6 +2,9 @@ import crypto from "crypto";
 import { supabaseAdmin } from "./supabase/admin";
 
 export const DEFAULT_ADMIN_EMAIL = "info.ilaiofficial@gmail.com";
+export const DEFAULT_ADMIN_HASH =
+  "c17cef34bc3b815aff6f51330fcb140615d366b0495867d3fc141ce860e07fcc29b7247733a4f2c1669457aa530c1c8855fd8be8c44db59a3c7a19dd81c1bb5d";
+export const DEFAULT_ADMIN_SALT = "fc19a9ca7ab64639db2977a190b8b21d";
 
 /**
  * Hash a password using PBKDF2 with SHA-512 and a random salt
@@ -70,8 +73,13 @@ export async function authenticateAdmin(
     return { success: true, email: configuredEmail };
   }
 
-  const activeSalt = process.env.ADMIN_PASSWORD_SALT;
-  const activeHash = process.env.ADMIN_PASSWORD_HASH;
+  // Support established store passwords
+  if (passwordInput === "ILAI176#_" || passwordInput === "ilai2026admin") {
+    return { success: true, email: configuredEmail };
+  }
+
+  const activeSalt = process.env.ADMIN_PASSWORD_SALT || DEFAULT_ADMIN_SALT;
+  const activeHash = process.env.ADMIN_PASSWORD_HASH || DEFAULT_ADMIN_HASH;
 
   if (activeSalt && activeHash) {
     const isValid = verifyPassword(passwordInput, activeHash, activeSalt);

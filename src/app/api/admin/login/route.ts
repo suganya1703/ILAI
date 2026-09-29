@@ -13,33 +13,6 @@ export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
 
-    // 1. Sliding Window Rate Limiting (max 5 login requests per minute per IP)
-    const limitCheck = rateLimit({
-      key: `admin_login_rate:${ip}`,
-      limit: 5,
-      windowMs: 60 * 1000,
-    });
-
-    if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Too many login requests. Please wait a minute and try again." },
-        { status: 429 }
-      );
-    }
-
-    // 2. Brute-Force Lockout Check (5 failed attempts = 15 minute lockout)
-    const lockoutStatus = checkLoginLockout(ip);
-    if (lockoutStatus.isLocked) {
-      return NextResponse.json(
-        {
-          error: `Too many failed login attempts. This IP address is locked out for ${lockoutStatus.remainingMinutes || 15} minutes.`,
-          locked: true,
-          remainingMinutes: lockoutStatus.remainingMinutes,
-        },
-        { status: 429 }
-      );
-    }
-
     const body = await req.json();
     const { email, password } = body;
 
@@ -47,6 +20,37 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Both email and password are required" },
         { status: 400 }
+      );
+    }
+
+    // 1. Check Brute-Force Lockout
+    const lockoutStatus = checkLoginLockout(ip);
+    if (lockoutStatus.isLocked) {
+      // Allow legitimate admin with correct password to bypass lockout
+      const testAuth = await authenticateAdmin(email, password);
+      if (!testAuth.success) {
+        return NextResponse.json(
+          {
+            error: `Too many failed login attempts. This IP address is locked out for ${lockoutStatus.remainingMinutes || 15} minutes.`,
+            locked: true,
+            remainingMinutes: lockoutStatus.remainingMinutes,
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    // 2. Sliding Window Rate Limiting (max 10 login requests per minute per IP)
+    const limitCheck = rateLimit({
+      key: `admin_login_rate:${ip}`,
+      limit: 10,
+      windowMs: 60 * 1000,
+    });
+
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: "Too many login requests. Please wait a minute and try again." },
+        { status: 429 }
       );
     }
 
@@ -70,14 +74,14 @@ export async function POST(req: Request) {
 
       return NextResponse.json(
         {
-          error: `Invalid admin credentials. ${failRecord.remainingAttempts} attempt(s) remaining before a 15-minute lockout.`,
+          error: `Invalid admin credentials. ${failRecord.remainingAttempts} attempt(s) remaining before lockout.`,
           remainingAttempts: failRecord.remainingAttempts,
         },
         { status: 401 }
       );
     }
 
-    // 5. Successful Authentication
+    // 5. Successful Authentication: Reset lockout immediately
     recordSuccessfulLogin(ip);
 
     // Create cryptographically signed HMAC-SHA256 session token

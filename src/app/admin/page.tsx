@@ -86,14 +86,9 @@ export default function AdminDashboardPage() {
     "Cancelled",
   ];
 
-  // Check auth session
+  // Check auth session and fetch orders
   useEffect(() => {
-    const session = localStorage.getItem("ilai_admin_session");
-    if (!session) {
-      router.push("/admin/login");
-    } else {
-      fetchOrders();
-    }
+    fetchOrders();
   }, [router]);
 
   const fetchOrders = async () => {
@@ -105,6 +100,12 @@ export default function AdminDashboardPage() {
       }
 
       const res = await fetch(url);
+      if (res.status === 401) {
+        localStorage.removeItem("ilai_admin_session");
+        router.push("/admin/login");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders);

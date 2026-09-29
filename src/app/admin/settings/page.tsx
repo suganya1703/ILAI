@@ -26,18 +26,18 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const session = localStorage.getItem("ilai_admin_session");
-    if (!session) {
-      router.push("/admin/login");
-    } else {
-      fetchSettings();
-    }
+    fetchSettings();
   }, [router]);
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/settings");
+      if (res.status === 401) {
+        localStorage.removeItem("ilai_admin_session");
+        router.push("/admin/login");
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setPrice(data.price);
