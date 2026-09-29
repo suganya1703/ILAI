@@ -62,10 +62,12 @@ export async function GET(
       );
     }
 
-    // Security check 2: Status must strictly be "Pending verification"
+    // Security check 2: Status must be pending verification (case-insensitive)
+    const paymentStatusStr = (order.payment_status || "").toLowerCase();
+    const orderStatusStr = (order.order_status || "").toLowerCase();
     const isPendingVerification =
-      order.payment_status === "Pending verification" ||
-      order.order_status === "Pending verification";
+      paymentStatusStr.includes("pending") ||
+      orderStatusStr.includes("pending");
 
     if (!isPendingVerification) {
       return new NextResponse(

@@ -65,8 +65,13 @@ function ensureFileExists() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    if (!fs.existsSync(ORDERS_FILE)) {
-      fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), "utf8");
+    const seedFile = path.join(process.cwd(), "data", "orders.json");
+    if (!fs.existsSync(ORDERS_FILE) || fs.readFileSync(ORDERS_FILE, "utf8").trim() === "[]") {
+      if (fs.existsSync(seedFile)) {
+        fs.copyFileSync(seedFile, ORDERS_FILE);
+      } else {
+        fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), "utf8");
+      }
     }
   } catch (err) {
     console.warn("Could not ensure orders file exists:", err);

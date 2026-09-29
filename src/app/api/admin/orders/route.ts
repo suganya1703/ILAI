@@ -62,9 +62,86 @@ export async function GET(req: Request) {
       orders = filtered;
     }
 
-    return NextResponse.json({ success: true, orders: orders || [] });
+    // 3. Compute live all-time statistics from Supabase (or local store fallback)
+    let allOrdersForStats: {
+      payment_method: string;
+      payment_status: string;
+      total_amount: number;
+      order_status: string;
+    }[] = [];
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: allDb, error: statsErr } = await supabaseAdmin
+          .from("orders")
+          .select("payment_method, payment_status, total_amount, order_status");
+        if (!statsErr && allDb && allDb.length > 0) {
+          allOrdersForStats = allDb;
+        }
+      } catch (e) {
+        console.warn("DB stats fetch fallback:", e);
+      }
+    }
+
+    if (allOrdersForStats.length === 0) {
+      allOrdersForStats = getAllLocalOrders();
+    }
+
+    const upiOrders = allOrdersForStats.filter(
+      (o) => o.payment_method === "upi" || o.payment_method === "upi_gpay"
+    );
+    const codOrders = allOrdersForStats.filter(
+      (o) => o.payment_method === "cod"
+    );
+
+    const upiPaidOrders = upiOrders.filter(
+      (o) => (o.payment_status || "").toLowerCase() === "paid"
+    );
+    const upiPendingOrders = upiOrders.filter(
+      (o) => (o.payment_status || "").toLowerCase() !== "paid"
+    );
+
+    const paidUpiRevenue = upiPaidOrders.reduce(
+      (sum, o) => sum + (Number(o.total_amount) || 0),
+      0
+    );
+    const codRevenue = codOrders.reduce(
+      (sum, o) => sum + (Number(o.total_amount) || 0),
+      0
+    );
+    const totalRevenue = allOrdersForStats
+      .filter((o) => (o.order_status || "").toLowerCase() !== "cancelled")
+      .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+
+    const stats = {
+      totalUpiOrders: upiOrders.length,
+      upiPaidOrders: upiPaidOrders.length,
+      upiPendingOrders: upiPendingOrders.length,
+      totalCodOrders: codOrders.length,
+      paidUpiRevenue,
+      codRevenue,
+      totalRevenue,
+      totalOrders: allOrdersForStats.length,
+    };
+
+    return NextResponse.json({ success: true, orders: orders || [], stats });
   } catch (err: any) {
     console.warn("Admin orders API error:", err?.message || err);
-    return NextResponse.json({ success: true, orders: getAllLocalOrders() });
+    const local = getAllLocalOrders();
+    const upiOrders = local.filter((o) => o.payment_method === "upi" || o.payment_method === "upi_gpay");
+    const codOrders = local.filter((o) => o.payment_method === "cod");
+    const upiPaidOrders = upiOrders.filter((o) => (o.payment_status || "").toLowerCase() === "paid");
+    const upiPendingOrders = upiOrders.filter((o) => (o.payment_status || "").toLowerCase() !== "paid");
+    const stats = {
+      totalUpiOrders: upiOrders.length,
+      upiPaidOrders: upiPaidOrders.length,
+      upiPendingOrders: upiPendingOrders.length,
+      totalCodOrders: codOrders.length,
+      paidUpiRevenue: upiPaidOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0),
+      codRevenue: codOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0),
+      totalRevenue: local.filter((o) => (o.order_status || "").toLowerCase() !== "cancelled").reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0),
+      totalOrders: local.length,
+    };
+    return NextResponse.json({ success: true, orders: local, stats });
   }
 }

@@ -50,7 +50,6 @@ export default async function OrderConfirmationPage({
   }
 
   // If order was not found at all, display a helpful Order Not Found screen
-  // instead of rendering empty customer details or dummy mock data
   if (!orderData) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 space-y-6 text-center bg-[#F6F2E6]">
@@ -86,12 +85,203 @@ export default async function OrderConfirmationPage({
 
   const isUpi = orderData.payment_method === "upi" || orderData.payment_method === "upi_gpay";
   const isCod = orderData.payment_method === "cod";
-  const isPendingVerification = orderData.payment_status === "Pending verification" || orderData.order_status === "Pending verification";
+  const isPaid = (orderData.payment_status || "").toLowerCase() === "paid";
+  const isUpiAwaitingPayment = isUpi && !isPaid;
 
   // Clean Order ID & mobile for the track order link to prevent double prefix
   const cleanOrderNumber = (orderData.order_number || "").replace(/^(IL)+ILAI-/i, "ILAI-");
   const cleanMobile = (orderData.customer_mobile || "").replace(/\D/g, "").slice(-10);
 
+  // ==========================================
+  // 1. UPI / GPay Orders Awaiting Payment Flow
+  // ==========================================
+  if (isUpiAwaitingPayment) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8 bg-[#F6F2E6]">
+        {/* a. Header: "Order Placed — Complete Your Payment" (not "Thank You" yet) */}
+        <div className="bg-[#EDE8D8] border border-[#E2DCCB] rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-[#506638] text-white flex items-center justify-center mx-auto shadow-md">
+            <QrCode className="w-9 h-9" />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-[#506638] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-[#E2DCCB]">
+              Action Required • Complete UPI Payment
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#263618]">
+              Order Placed — Complete Your Payment
+            </h1>
+            <p className="text-[#5F6F50] text-xs sm:text-sm max-w-md mx-auto">
+              Please scan the UPI QR code below to complete your payment so our team can verify and confirm your order.
+            </p>
+          </div>
+
+          {/* Order ID & Server Calculated Total Amount Badge */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <div className="bg-white px-5 py-2.5 rounded-2xl border border-[#E2DCCB] shadow-sm text-left">
+              <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Order ID</span>
+              <span className="text-xl font-extrabold text-[#506638] tracking-tight">{cleanOrderNumber}</span>
+            </div>
+            <div className="bg-white px-5 py-2.5 rounded-2xl border border-[#E2DCCB] shadow-sm text-left">
+              <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Total Payable</span>
+              <span className="text-xl font-extrabold text-[#263618] tracking-tight">{formatINR(orderData.total_amount)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* b. UPI/GPay QR code + "Scan to Pay ₹[amount]" — FIRST and most prominent thing on the page, right at the top */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2DCCB] shadow-md text-center space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EDE8D8] text-[#506638] text-xs font-bold border border-[#E2DCCB]">
+            <QrCode className="w-4 h-4 text-[#506638]" />
+            <span>UPI / GPay Payment QR Code</span>
+          </div>
+
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#263618]">
+              Scan to Pay {formatINR(orderData.total_amount)}
+            </h2>
+            <p className="text-xs text-[#5F6F50] mt-1">
+              Compatible with Google Pay, PhonePe, Paytm, BHIM, and any UPI app
+            </p>
+          </div>
+
+          <div className="w-64 h-64 sm:w-72 sm:h-72 mx-auto rounded-2xl overflow-hidden border-2 border-[#506638]/30 p-3 bg-white shadow-lg">
+            <img
+              src={`/api/orders/${orderData.confirmation_token || orderData.id}/qr`}
+              alt="ILAI GPay UPI QR Code"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          <div className="bg-[#F6F2E6] p-3.5 rounded-xl border border-[#E2DCCB] inline-block max-w-sm mx-auto">
+            <p className="text-xs text-[#5F6F50]">UPI ID (Tap or scan in your UPI app):</p>
+            <p className="text-sm font-extrabold text-[#506638] select-all tracking-wide mt-0.5">{siteConfig.upiId}</p>
+          </div>
+
+          {/* c. Below the QR: a clear instruction — "After paying, we'll verify and confirm your order shortly." */}
+          <div className="max-w-md mx-auto bg-[#EDE8D8]/80 border border-[#E2DCCB] rounded-2xl p-4 text-center space-y-1.5">
+            <div className="flex items-center justify-center gap-2 text-[#506638] font-bold text-sm">
+              <Clock className="w-4 h-4" />
+              <span>After paying, we&apos;ll verify and confirm your order shortly.</span>
+            </div>
+            <p className="text-xs text-[#5F6F50]">
+              Once you complete payment in your UPI app, our team will verify the payment and confirm your order. Confirmation will be sent to <strong>{orderData.customer_email || "your email"}</strong>.
+            </p>
+          </div>
+        </div>
+
+        {/* e. The "Thank you for choosing ILAI" message stays, but move it to a secondary position — not above the QR */}
+        <div className="bg-white border-l-4 border-[#506638] border-[#E2DCCB] border-t border-r border-b rounded-2xl p-5 sm:p-6 shadow-sm space-y-2">
+          <p className="font-bold text-[#263618] text-base">🌿 Thank you for choosing ILAI!</p>
+          <p className="text-sm text-[#263618]">We have received your order details.</p>
+          <p className="text-sm text-[#263618]">Our team will verify your payment and confirm your order as soon as possible.</p>
+          <p className="text-sm text-[#506638] font-semibold">Your order confirmation and delivery details will be shared once the payment is verified.</p>
+        </div>
+
+        {/* d. Below that: the order details (items, address, Order ID, amounts) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left Column: Items & Totals */}
+          <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-6">
+            <h2 className="text-lg font-bold text-[#263618] border-b border-[#E2DCCB] pb-3 flex items-center gap-2">
+              <Package className="w-5 h-5 text-[#506638]" />
+              <span>Ordered Items</span>
+            </h2>
+
+            <div className="space-y-3">
+              {orderData.order_items && orderData.order_items.length > 0 ? (
+                orderData.order_items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm border-b border-[#E2DCCB]/60 pb-3 gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#E2DCCB] shrink-0 bg-white">
+                        <img
+                          src={productContent.images?.[0] || "/images/product/ilai-pad-1.jpg"}
+                          alt={item.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#263618]">{item.product_name}</p>
+                        <p className="text-xs text-[#5F6F50]">Qty: {item.quantity} pack(s) (6 pads/pack)</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-[#263618]">{formatINR(item.total_price)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-[#5F6F50] py-2">
+                  ILAI Eco-Friendly Sanitary Pads (1 pack)
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 text-sm pt-2">
+              <div className="flex justify-between text-[#5F6F50]">
+                <span>Subtotal</span>
+                <span>{formatINR(orderData.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-[#5F6F50]">
+                <span>Delivery Charge (Tamil Nadu)</span>
+                <span>{orderData.delivery_charge === 0 ? "FREE" : formatINR(orderData.delivery_charge)}</span>
+              </div>
+              <div className="pt-3 border-t border-[#E2DCCB] flex justify-between items-baseline font-bold text-[#263618] text-base">
+                <span>Total Payable</span>
+                <span className="text-xl text-[#506638]">{formatINR(orderData.total_amount)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Customer Info & Status */}
+          <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-6">
+            <h2 className="text-lg font-bold text-[#263618] border-b border-[#E2DCCB] pb-3 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-[#506638]" />
+              <span>Delivery & Payment Status</span>
+            </h2>
+
+            <div className="space-y-4 text-xs text-[#5F6F50]">
+              <div>
+                <p className="font-bold text-[#263618] text-sm">{orderData.customer_name}</p>
+                <p>{orderData.address_line}</p>
+                <p>{orderData.city}, {orderData.state} - {orderData.pincode}</p>
+                <p className="mt-1 font-medium text-[#263618]">Mobile: +91 {orderData.customer_mobile}</p>
+              </div>
+
+              <div className="bg-[#F6F2E6] p-4 rounded-xl border border-[#E2DCCB] space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[#5F6F50]">Payment Method:</span>
+                  <span className="font-bold text-[#263618]">
+                    Pay via UPI / GPay
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[#5F6F50]">Payment Status:</span>
+                  <span className="font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-[11px]">
+                    {orderData.payment_status || "Pending verification"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[#5F6F50]">Order Status:</span>
+                  <span className="font-bold px-2.5 py-0.5 rounded-full text-[11px] border bg-amber-100 text-amber-900 border-amber-300">
+                    {orderData.order_status}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href={`/track?id=${encodeURIComponent(cleanOrderNumber)}&mobile=${encodeURIComponent(cleanMobile)}`}
+              className="w-full py-3.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md flex items-center justify-center gap-2"
+            >
+              <Truck className="w-4 h-4" />
+              <span>Track Order Status</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ========================================================
+  // 2. COD Orders & Already Paid Orders Flow (Existing Order)
+  // ========================================================
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8 bg-[#F6F2E6]">
       {/* Thank You & Order Received Header */}
@@ -101,7 +291,7 @@ export default async function OrderConfirmationPage({
         </div>
         <div className="space-y-1">
           <span className="text-xs font-bold text-[#506638] uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-[#E2DCCB]">
-            {orderData.order_status === "Confirmed"
+            {orderData.order_status === "Confirmed" || isPaid
               ? "Order Confirmed"
               : isCod
               ? "Order Received - Pending Confirmation"
@@ -124,7 +314,7 @@ export default async function OrderConfirmationPage({
             <span className="text-xl font-extrabold text-[#506638] tracking-tight">{cleanOrderNumber}</span>
           </div>
           <div className="bg-white px-5 py-2.5 rounded-2xl border border-[#E2DCCB] shadow-sm text-left">
-            <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Total Amount (Server Calculated)</span>
+            <span className="text-[11px] text-[#5F6F50] uppercase tracking-wider block font-semibold">Total Amount</span>
             <span className="text-xl font-extrabold text-[#263618] tracking-tight">{formatINR(orderData.total_amount)}</span>
           </div>
         </div>
@@ -138,6 +328,11 @@ export default async function OrderConfirmationPage({
             <p className="text-sm text-[#263618]">Order received. Pay cash on delivery. We will confirm your order shortly.</p>
             <p className="text-sm text-[#506638] font-semibold">Our team will verify your address and prepare your package for dispatch across Tamil Nadu.</p>
           </>
+        ) : isPaid ? (
+          <>
+            <p className="text-sm text-[#263618]">Your payment has been successfully verified.</p>
+            <p className="text-sm text-[#506638] font-semibold">Our team is packing your order for dispatch across Tamil Nadu.</p>
+          </>
         ) : (
           <>
             <p className="text-sm text-[#263618]">We have received your order and payment details.</p>
@@ -146,32 +341,6 @@ export default async function OrderConfirmationPage({
           </>
         )}
       </div>
-
-      {/* UPI QR Code Section: Strictly only shown for UPI orders in "Pending verification" */}
-      {isUpi && isPendingVerification && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2DCCB] shadow-sm text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EDE8D8] text-[#506638] text-xs font-bold border border-[#E2DCCB]">
-            <QrCode className="w-4 h-4 text-[#506638]" />
-            <span>UPI / GPay Payment QR Code</span>
-          </div>
-          <h2 className="text-lg font-bold text-[#263618]">
-            Scan to Pay {formatINR(orderData.total_amount)}
-          </h2>
-
-          <div className="w-64 h-64 mx-auto rounded-2xl overflow-hidden border-2 border-[#E2DCCB] p-2 bg-white shadow-md">
-            <img
-              src={`/api/orders/${orderData.confirmation_token || orderData.id}/qr`}
-              alt="ILAI GPay UPI QR Code"
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          <div className="bg-[#F6F2E6] p-3 rounded-xl border border-[#E2DCCB] inline-block max-w-sm mx-auto">
-            <p className="text-xs text-[#5F6F50]">UPI ID (Tap or Scan in GPay / PhonePe / Paytm):</p>
-            <p className="text-sm font-extrabold text-[#506638] select-all tracking-wide">{siteConfig.upiId}</p>
-          </div>
-        </div>
-      )}
 
       {/* Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -249,7 +418,11 @@ export default async function OrderConfirmationPage({
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#5F6F50]">Payment Status:</span>
-                <span className="font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full text-[11px]">
+                <span className={`font-bold border px-2.5 py-0.5 rounded-full text-[11px] ${
+                  isPaid
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : "bg-amber-100 text-amber-900 border-amber-300"
+                }`}>
                   {orderData.payment_status}
                 </span>
               </div>

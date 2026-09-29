@@ -33,6 +33,18 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Live order & online payment statistics
+  const [stats, setStats] = useState<{
+    totalUpiOrders: number;
+    upiPaidOrders: number;
+    upiPendingOrders: number;
+    totalCodOrders: number;
+    paidUpiRevenue: number;
+    codRevenue: number;
+    totalRevenue: number;
+    totalOrders: number;
+  } | null>(null);
+
   // Status & Payment update modal state
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<OrderStatus>("Confirmed");
@@ -75,6 +87,9 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders);
+        if (data.stats) {
+          setStats(data.stats);
+        }
       }
     } catch (e) {
       console.error("Fetch admin orders error:", e);
@@ -232,6 +247,15 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => fetchOrders()}
+            disabled={loading}
+            className="px-4 py-2.5 bg-[#F6F2E6] hover:bg-[#EDE8D8] text-[#263618] text-xs font-bold rounded-xl border border-[#E2DCCB] transition-colors flex items-center justify-center gap-2"
+            title="Refresh Orders & Live Stats"
+          >
+            <RefreshCw className={`w-4 h-4 text-[#506638] ${loading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
+          </button>
           <Link
             href="/admin/settings"
             className="flex-1 sm:flex-none px-4 py-2.5 bg-[#F6F2E6] hover:bg-[#EDE8D8] text-[#263618] text-xs font-bold rounded-xl border border-[#E2DCCB] transition-colors flex items-center justify-center gap-2"
@@ -247,6 +271,125 @@ export default function AdminDashboardPage() {
             <LogOut className="w-4 h-4" />
             <span>Logout</span>
           </button>
+        </div>
+      </div>
+
+      {/* Online Payment & Order Summary Cards (Live from Supabase) */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#506638]">
+              Live Payment & Order Summary
+            </h2>
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+              Live Data
+            </span>
+          </div>
+          {stats && (
+            <span className="text-[11px] text-[#5F6F50]">
+              All-Time Total: <strong>{stats.totalOrders} orders</strong> • <strong>{formatINR(stats.totalRevenue)}</strong>
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total UPI / GPay Orders */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                UPI / GPay Orders
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                <QrCode className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-3xl font-black text-[#263618]">
+                {stats ? stats.totalUpiOrders : "—"}
+              </div>
+              <p className="text-[11px] text-[#5F6F50] mt-0.5">Total online orders received</p>
+            </div>
+            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
+                <Check className="w-3 h-3 text-emerald-600" />
+                {stats ? stats.upiPaidOrders : 0} Paid
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200">
+                <Clock className="w-3 h-3 text-amber-600" />
+                {stats ? stats.upiPendingOrders : 0} Pending
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Cash on Delivery Orders */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                Total COD Orders
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                <Banknote className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-3xl font-black text-[#263618]">
+                {stats ? stats.totalCodOrders : "—"}
+              </div>
+              <p className="text-[11px] text-[#5F6F50] mt-0.5">Cash on delivery orders received</p>
+            </div>
+            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+              <span>Payment:</span>
+              <span className="font-bold text-[#263618]">Doorstep Cash</span>
+            </div>
+          </div>
+
+          {/* Card 3: Paid Online Revenue */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                Paid UPI Revenue
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-3xl font-black text-emerald-800">
+                {stats ? formatINR(stats.paidUpiRevenue) : "—"}
+              </div>
+              <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                From {stats ? stats.upiPaidOrders : 0} verified UPI payments
+              </p>
+            </div>
+            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+              <span>Status:</span>
+              <span className="font-bold text-emerald-700">Verified & Realized</span>
+            </div>
+          </div>
+
+          {/* Card 4: COD Revenue */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                COD Order Value
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                <Truck className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="my-2">
+              <div className="text-3xl font-black text-[#263618]">
+                {stats ? formatINR(stats.codRevenue) : "—"}
+              </div>
+              <p className="text-[11px] text-[#5F6F50] mt-0.5">
+                From {stats ? stats.totalCodOrders : 0} COD orders
+              </p>
+            </div>
+            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+              <span>Collection:</span>
+              <span className="font-bold text-[#506638]">Payable on Delivery</span>
+            </div>
+          </div>
         </div>
       </div>
 
