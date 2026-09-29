@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS store_settings (
   estimated_delivery_time TEXT NOT NULL DEFAULT '2-5 working days',
   allowed_pincodes TEXT DEFAULT '',
   store_contact_email TEXT NOT NULL DEFAULT 'info.ilaiofficial@gmail.com',
-  store_whatsapp TEXT NOT NULL DEFAULT '+918300815220',
+  store_whatsapp TEXT NOT NULL DEFAULT '+918610835406',
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row_check CHECK (id = 1)
 );
 
 -- Seed initial settings row if not present
 INSERT INTO store_settings (id, delivery_charge, min_packs_per_order, cod_enabled, estimated_delivery_time, store_contact_email, store_whatsapp)
-VALUES (1, 40.00, 1, TRUE, '2-5 working days', 'info.ilaiofficial@gmail.com', '+918300815220')
+VALUES (1, 40.00, 1, TRUE, '2-5 working days', 'info.ilaiofficial@gmail.com', '+918610835406')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Products Table

@@ -19,59 +19,81 @@ export default function ContactPage() {
       </div>
 
       {/* Main Channels Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-        {/* WhatsApp Card */}
-        <div className="bg-white p-8 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
-          <div className="w-16 h-16 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
-            <MessageCircle className="w-8 h-8" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        {/* 1. WhatsApp Card (8610835406) */}
+        <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
+          <div className="w-14 h-14 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
+            <MessageCircle className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-[#263618]">WhatsApp Chat</h3>
+            <h3 className="text-lg font-bold text-[#263618]">WhatsApp Chat</h3>
             <p className="text-xs text-[#5F6F50]">Fastest response for order support</p>
+            <p className="text-xs font-semibold text-[#506638]">{siteConfig.whatsappDisplay}</p>
           </div>
           <a
             href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(siteConfig.whatsappMessage)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md inline-flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-xs shadow-md inline-flex items-center justify-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />
             <span>Chat on WhatsApp</span>
           </a>
         </div>
 
-        {/* Email Support Card */}
-        <div className="bg-white p-8 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
-          <div className="w-16 h-16 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
-            <Mail className="w-8 h-8" />
+        {/* 2. Call Us Card (8300815220) */}
+        <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
+          <div className="w-14 h-14 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
+            <Phone className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-[#263618]">Email Support</h3>
-            <p className="text-xs text-[#5F6F50]">For general & corporate inquiries</p>
+            <h3 className="text-lg font-bold text-[#263618]">Call Us</h3>
+            <p className="text-xs text-[#5F6F50]">Phone support & order queries</p>
+            <p className="text-xs font-semibold text-[#506638]">{siteConfig.phoneCallDisplay}</p>
           </div>
           <a
-            href={`mailto:${siteConfig.contactEmail}`}
-            className="w-full py-3 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md inline-flex items-center justify-center gap-2"
+            href={siteConfig.phoneCallTel}
+            className="w-full py-2.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-xs shadow-md inline-flex items-center justify-center gap-2"
           >
-            <Mail className="w-4 h-4" />
-            <span>{siteConfig.contactEmail}</span>
+            <Phone className="w-4 h-4" />
+            <span>Call Us Now</span>
           </a>
         </div>
 
-        {/* Instagram Profile Card */}
-        <div className="bg-white p-8 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
-          <div className="w-16 h-16 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
-            <Instagram className="w-8 h-8" />
+        {/* 3. Email Support Card */}
+        <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
+          <div className="w-14 h-14 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
+            <Mail className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-[#263618]">Instagram</h3>
-            <p className="text-xs text-[#5F6F50]">Follow for updates & community stories</p>
+            <h3 className="text-lg font-bold text-[#263618]">Email Support</h3>
+            <p className="text-xs text-[#5F6F50]">General & corporate inquiries</p>
+            <p className="text-xs font-semibold text-[#506638] truncate">{siteConfig.contactEmail}</p>
+          </div>
+          <a
+            href={`mailto:${siteConfig.contactEmail}`}
+            className="w-full py-2.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-xs shadow-md inline-flex items-center justify-center gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            <span>Send Email</span>
+          </a>
+        </div>
+
+        {/* 4. Instagram Profile Card */}
+        <div className="bg-white p-6 rounded-2xl border border-[#E2DCCB] shadow-sm space-y-4 text-center flex flex-col justify-between hover:border-[#506638] transition-colors">
+          <div className="w-14 h-14 rounded-full bg-[#EDE8D8] text-[#506638] flex items-center justify-center mx-auto border border-[#E2DCCB]">
+            <Instagram className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-[#263618]">Instagram</h3>
+            <p className="text-xs text-[#5F6F50]">Follow for stories & updates</p>
+            <p className="text-xs font-semibold text-[#506638]">@_ilai_off</p>
           </div>
           <a
             href={siteConfig.instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-sm shadow-md inline-flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#506638] text-white font-bold rounded-xl hover:bg-[#3E512B] transition-colors text-xs shadow-md inline-flex items-center justify-center gap-2"
           >
             <Instagram className="w-4 h-4" />
             <span>@_ilai_off</span>
@@ -80,7 +102,7 @@ export default function ContactPage() {
       </div>
 
       {/* Support Hours & Location Info */}
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl border border-[#E2DCCB] grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left text-xs text-[#5F6F50] shadow-sm">
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl border border-[#E2DCCB] grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left text-xs text-[#5F6F50] shadow-sm">
         <div className="flex items-center gap-3 justify-center sm:justify-start">
           <Clock className="w-5 h-5 text-[#506638] shrink-0" />
           <div>
@@ -92,8 +114,10 @@ export default function ContactPage() {
         <div className="flex items-center gap-3 justify-center sm:justify-start">
           <Phone className="w-5 h-5 text-[#506638] shrink-0" />
           <div>
-            <p className="font-bold text-[#263618]">Direct Helpline</p>
-            <p>{siteConfig.contactPhone}</p>
+            <p className="font-bold text-[#263618]">Call Us (Direct Helpline)</p>
+            <a href={siteConfig.phoneCallTel} className="font-semibold text-[#506638] hover:underline">
+              {siteConfig.phoneCallDisplay}
+            </a>
           </div>
         </div>
 

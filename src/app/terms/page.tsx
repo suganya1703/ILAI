@@ -25,7 +25,7 @@ export default function TermsPage() {
 
       <h2 className="text-lg font-bold text-slate-900 pt-2">3. Orders & Cancellation</h2>
       <p>
-        Once an order is confirmed, it is queued for packing. Customers may cancel their order before dispatch by contacting support at {siteConfig.contactEmail} or on WhatsApp at {siteConfig.contactPhone}.
+        Once an order is confirmed, it is queued for packing. Customers may cancel their order before dispatch by contacting support at {siteConfig.contactEmail} or on WhatsApp at <a href={`https://wa.me/${siteConfig.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="text-[#506638] underline font-bold">{siteConfig.whatsappDisplay}</a>.
       </p>
 
       <h2 className="text-lg font-bold text-slate-900 pt-2">4. Limitation of Liability</h2>

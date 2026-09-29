@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
   estimated_delivery_time TEXT NOT NULL DEFAULT '2-5 working days',
   allowed_pincodes TEXT DEFAULT '',
   store_contact_email TEXT NOT NULL DEFAULT 'support@ilai.in',
-  store_whatsapp TEXT NOT NULL DEFAULT '+918300815220',
+  store_whatsapp TEXT NOT NULL DEFAULT '+918610835406',
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row_check CHECK (id = 1)
 );

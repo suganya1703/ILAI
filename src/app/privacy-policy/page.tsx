@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
 
       <h2 className="text-lg font-bold text-slate-900 pt-2">5. Contact Us</h2>
       <p>
-        For any privacy concerns or data requests, please contact us at <strong>{siteConfig.contactEmail}</strong> or via WhatsApp at <strong>{siteConfig.contactPhone}</strong>.
+        For any privacy concerns or data requests, please contact us at <strong>{siteConfig.contactEmail}</strong> or via WhatsApp at <a href={`https://wa.me/${siteConfig.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="text-[#506638] underline font-bold">{siteConfig.whatsappDisplay}</a>.
       </p>
     </div>
   );

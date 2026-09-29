@@ -1,5 +1,13 @@
-// Single Source of Truth for Store Contact Phone Number
-const rawPhoneNumber = "8300815220"; // 10-digit Indian mobile number
+// ============================================================================
+// Single Source of Truth for Store Contact Numbers
+// Edit either of these two values to update numbers across the entire storefront:
+// ============================================================================
+
+/** 1. WHATSAPP NUMBER (for chat/message enquiries, floating button, wa.me links): 8610835406 */
+export const WHATSAPP_NUMBER_RAW = "8610835406";
+
+/** 2. PHONE CALL NUMBER (for calling, "Call us" section, tel: links): 8300815220 */
+export const PHONE_CALL_NUMBER_RAW = "8300815220";
 
 export const siteConfig = {
   name: "ILAI",
@@ -10,9 +18,20 @@ export const siteConfig = {
   domain: "ilai.in",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://ilai.in",
   contactEmail: "info.ilaiofficial@gmail.com",
-  contactPhone: `+91 ${rawPhoneNumber.slice(0, 5)} ${rawPhoneNumber.slice(5)}`, // "+91 83008 15220" for customer display
-  whatsappNumber: `91${rawPhoneNumber}`, // "918300815220" for wa.me links & WhatsApp API
+
+  // 1. WhatsApp Configuration (8610835406)
+  whatsappRaw: WHATSAPP_NUMBER_RAW,
+  whatsappNumber: `91${WHATSAPP_NUMBER_RAW}`, // "918610835406" (country code, no +, no spaces for wa.me)
+  whatsappDisplay: `+91 ${WHATSAPP_NUMBER_RAW.slice(0, 5)} ${WHATSAPP_NUMBER_RAW.slice(5)}`, // "+91 86108 35406"
   whatsappMessage: "Hello ILAI team, I have an inquiry regarding your biodegradable sanitary pads.",
+  whatsappUrl: `https://wa.me/91${WHATSAPP_NUMBER_RAW}?text=${encodeURIComponent("Hello ILAI team, I have an inquiry regarding your biodegradable sanitary pads.")}`,
+
+  // 2. Phone Call Configuration (8300815220)
+  phoneCallRaw: PHONE_CALL_NUMBER_RAW,
+  phoneCallNumber: PHONE_CALL_NUMBER_RAW,
+  phoneCallTel: `tel:+91${PHONE_CALL_NUMBER_RAW}`, // "tel:+918300815220" for tel: links
+  phoneCallDisplay: `+91 ${PHONE_CALL_NUMBER_RAW.slice(0, 5)} ${PHONE_CALL_NUMBER_RAW.slice(5)}`, // "+91 83008 15220" for display
+  contactPhone: `+91 ${PHONE_CALL_NUMBER_RAW.slice(0, 5)} ${PHONE_CALL_NUMBER_RAW.slice(5)}`, // "+91 83008 15220" (alias for phoneCallDisplay)
   instagramUrl: "https://instagram.com/_ilai_off",
   upiId: "suganyasubramaniam1727@okaxis",
   getUpiQrUrl: (token: string) => `/api/orders/${token}/qr`,

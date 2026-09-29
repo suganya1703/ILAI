@@ -22,7 +22,7 @@ export default function ShippingReturnsPage() {
           We currently deliver within Tamil Nadu only.
         </p>
         <p>
-          Deliveries are dispatched exclusively to valid 6-digit Tamil Nadu PIN codes (starting with 60, 61, 62, 63, or 64). Orders placed with PIN codes outside Tamil Nadu are automatically blocked. If you require bulk orders or special delivery inquiries outside Tamil Nadu, please reach out to us via WhatsApp.
+          Deliveries are dispatched exclusively to valid 6-digit Tamil Nadu PIN codes (starting with 60, 61, 62, 63, or 64). Orders placed with PIN codes outside Tamil Nadu are automatically blocked. If you require bulk orders or special delivery inquiries outside Tamil Nadu, please reach out to us via <a href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent("Hello ILAI team, I would like to inquire about bulk/delivery options outside Tamil Nadu.")}`} target="_blank" rel="noopener noreferrer" className="text-[#506638] underline font-bold">WhatsApp ({siteConfig.whatsappDisplay})</a>.
         </p>
 
         <h2 className="text-lg font-bold text-[#263618] pt-2">2. Delivery Charges & Estimated Delivery Time</h2>
@@ -44,7 +44,7 @@ export default function ShippingReturnsPage() {
 
         <h2 className="text-lg font-bold text-[#263618] pt-2">5. Damaged or Defective Deliveries</h2>
         <p>
-          If you receive a package that is damaged, tampered with, or defective, please notify us within 48 hours of delivery at <strong>{siteConfig.contactEmail}</strong> or WhatsApp us at <strong>{siteConfig.contactPhone}</strong> with photos of the damaged parcel. We will issue a replacement or refund immediately.
+          If you receive a package that is damaged, tampered with, or defective, please notify us within 48 hours of delivery at <strong>{siteConfig.contactEmail}</strong> or WhatsApp us at <a href={`https://wa.me/${siteConfig.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="text-[#506638] underline font-bold">{siteConfig.whatsappDisplay}</a> with photos of the damaged parcel. We will issue a replacement or refund immediately.
         </p>
       </div>
     </div>
