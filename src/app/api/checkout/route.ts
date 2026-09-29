@@ -227,10 +227,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // 7. Create Order Items
+    // 7. Create Order Items (ensuring valid UUID for Supabase schema)
+    const FLAGSHIP_PRODUCT_UUID = "e2b4f74d-9051-419b-a3d5-e366da2b8b99";
+    const isUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
     const orderItemRecords = validatedData.items.map((item) => ({
       order_id: createdOrder.id,
-      product_id: productContent.id,
+      product_id: isUuid(item.productId) ? item.productId : FLAGSHIP_PRODUCT_UUID,
       product_name: productContent.name,
       unit_price: unitPrice,
       quantity: item.quantity,
