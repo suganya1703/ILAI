@@ -182,6 +182,10 @@ export const faqContent = [
   {
     question: "How many pads come in one pack?",
     answer: "Each pack contains 6 biodegradable sanitary pads."
+  },
+  {
+    question: "What are your customer support timings?",
+    answer: "Our customer support team is available Monday to Saturday from 9:00 AM to 7:00 PM IST, and Sunday from 7:00 AM to 9:00 PM IST via WhatsApp and phone helpline."
   }
 ];
 
@@ -230,8 +234,12 @@ Our journey began by exploring natural plant fibres abundant in South India — 
 // FAQ items for the rule-based chat widget
 export const FAQ_CHAT_ITEMS = [
   {
+    question: "What are your customer support hours?",
+    answer: "Support is available Monday to Saturday from 9:00 AM to 7:00 PM IST, and Sunday from 7:00 AM to 9:00 PM IST via WhatsApp and phone."
+  },
+  {
     question: "How long does delivery take?",
-    answer: "We currently deliver within Tamil Nadu in [X] working days."
+    answer: "We currently deliver within Tamil Nadu in 2-5 working days."
   },
   {
     question: "What payment options do you have?",

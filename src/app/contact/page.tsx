@@ -105,9 +105,10 @@ export default function ContactPage() {
       <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl border border-[#E2DCCB] grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left text-xs text-[#5F6F50] shadow-sm">
         <div className="flex items-center gap-3 justify-center sm:justify-start">
           <Clock className="w-5 h-5 text-[#506638] shrink-0" />
-          <div>
+          <div className="space-y-0.5">
             <p className="font-bold text-[#263618]">Support Hours</p>
-            <p>Mon - Sat: 9:00 AM - 7:00 PM IST</p>
+            <p>{siteConfig.supportHours.weekdays}</p>
+            <p className="text-[#506638] font-medium">{siteConfig.supportHours.sunday}</p>
           </div>
         </div>
 

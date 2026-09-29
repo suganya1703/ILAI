@@ -19,6 +19,13 @@ export const siteConfig = {
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://ilai.in",
   contactEmail: "info.ilaiofficial@gmail.com",
 
+  // Support Hours: Mon - Sat 9am-7pm, Sunday 7am-9pm
+  supportHours: {
+    weekdays: "Mon - Sat: 9:00 AM - 7:00 PM IST",
+    sunday: "Sun: 7:00 AM - 9:00 PM IST",
+    display: "Mon - Sat: 9:00 AM - 7:00 PM IST | Sun: 7:00 AM - 9:00 PM IST",
+  },
+
   // 1. WhatsApp Configuration (8610835406)
   whatsappRaw: WHATSAPP_NUMBER_RAW,
   whatsappNumber: `91${WHATSAPP_NUMBER_RAW}`, // "918610835406" (country code, no +, no spaces for wa.me)
