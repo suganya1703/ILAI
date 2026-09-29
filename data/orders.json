@@ -1,89 +1,5 @@
 [
   {
-    "id": "order-1790410480078",
-    "order_number": "ILAI-2026-0003",
-    "customer_name": "Sequential Test 3",
-    "customer_email": "info.ilaiofficial@gmail.com",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Green Way",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600001",
-    "payment_method": "upi",
-    "payment_status": "Pending verification",
-    "order_status": "Pending",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T08:14:40.078Z",
-    "order_items": [
-      {
-        "order_id": "order-1790410480078",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ]
-  },
-  {
-    "id": "order-1790410480052",
-    "order_number": "ILAI-2026-0002",
-    "customer_name": "Sequential Test 2",
-    "customer_email": "info.ilaiofficial@gmail.com",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Green Way",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600001",
-    "payment_method": "upi",
-    "payment_status": "Pending verification",
-    "order_status": "Pending",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T08:14:40.052Z",
-    "order_items": [
-      {
-        "order_id": "order-1790410480052",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ]
-  },
-  {
-    "id": "order-1790410480027",
-    "order_number": "ILAI-2026-0001",
-    "customer_name": "Sequential Test 1",
-    "customer_email": "info.ilaiofficial@gmail.com",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Green Way",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600001",
-    "payment_method": "upi",
-    "payment_status": "Pending verification",
-    "order_status": "Pending",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T08:14:40.027Z",
-    "order_items": [
-      {
-        "order_id": "order-1790410480027",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ]
-  },
-  {
     "id": "order-1790409487192",
     "order_number": "ILAI-495712",
     "customer_name": "DEEPi",
@@ -103,94 +19,11 @@
     "order_items": [
       {
         "order_id": "order-1790409487192",
-        "product_id": "ilai-sanitary-pad-pack-6",
+        "product_id": "e2b4f74d-9051-419b-a3d5-e366da2b8b99",
         "product_name": "ILAI Sanitary Pad",
         "unit_price": 45,
         "quantity": 1,
         "total_price": 45
-      }
-    ]
-  },
-  {
-    "id": "order-1790405939540",
-    "order_number": "ILAI-777108",
-    "customer_name": "ILAI Store Tester",
-    "customer_email": "info.ilaiofficial@gmail.com",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Eco Green Way, Anna Nagar",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600040",
-    "payment_method": "upi",
-    "payment_status": "Paid",
-    "order_status": "Packed",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T06:58:59.540Z",
-    "order_items": [
-      {
-        "order_id": "order-1790405939540",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ],
-    "updated_at": "2026-09-26T07:02:52.989Z",
-    "order_status_history": [
-      {
-        "id": "hist-1790406093870",
-        "order_id": "order-1790405939540",
-        "status": "Confirmed",
-        "note": "Payment verified manually",
-        "created_at": "2026-09-26T07:01:33.870Z"
-      },
-      {
-        "id": "hist-1790406172989",
-        "order_id": "order-1790405939540",
-        "status": "Packed",
-        "note": "Order packed in eco pouch",
-        "created_at": "2026-09-26T07:02:52.989Z"
-      }
-    ]
-  },
-  {
-    "id": "order-1790405905104",
-    "order_number": "ILAI-413601",
-    "customer_name": "ILAI Store Tester",
-    "customer_email": "info.ilaiofficial@gmail.com",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Eco Green Way, Anna Nagar",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600040",
-    "payment_method": "upi",
-    "payment_status": "Paid",
-    "order_status": "Confirmed",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T06:58:25.104Z",
-    "order_items": [
-      {
-        "order_id": "order-1790405905104",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ],
-    "updated_at": "2026-09-26T07:57:03.551Z",
-    "order_status_history": [
-      {
-        "id": "hist-1790409423551",
-        "order_id": "order-1790405905104",
-        "status": "Confirmed",
-        "note": "Payment manually verified as Paid by admin at 26/9/2026, 1:27:02 pm",
-        "created_at": "2026-09-26T07:57:03.551Z"
       }
     ]
   },
@@ -214,35 +47,7 @@
     "order_items": [
       {
         "order_id": "order-1790404627092",
-        "product_id": "ilai-sanitary-pad-pack-6",
-        "product_name": "ILAI Sanitary Pad",
-        "unit_price": 45,
-        "quantity": 1,
-        "total_price": 45
-      }
-    ]
-  },
-  {
-    "id": "order-1790404196048",
-    "order_number": "ILAI-316003",
-    "customer_name": "Test Customer",
-    "customer_email": "test@ilai.in",
-    "customer_mobile": "9876543210",
-    "address_line": "123 Green Street",
-    "city": "Chennai",
-    "state": "Tamil Nadu",
-    "pincode": "600001",
-    "payment_method": "upi",
-    "payment_status": "Pending verification",
-    "order_status": "Confirmed",
-    "subtotal": 45,
-    "delivery_charge": 40,
-    "total_amount": 85,
-    "created_at": "2026-09-26T06:29:56.048Z",
-    "order_items": [
-      {
-        "order_id": "order-1790404196048",
-        "product_id": "ilai-sanitary-pad-pack-6",
+        "product_id": "e2b4f74d-9051-419b-a3d5-e366da2b8b99",
         "product_name": "ILAI Sanitary Pad",
         "unit_price": 45,
         "quantity": 1,
@@ -270,7 +75,7 @@
     "order_items": [
       {
         "order_id": "demo-1790403011104",
-        "product_id": "ilai-sanitary-pad-pack-6",
+        "product_id": "e2b4f74d-9051-419b-a3d5-e366da2b8b99",
         "product_name": "ILAI Sanitary Pad",
         "unit_price": 45,
         "quantity": 1,
