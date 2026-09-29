@@ -225,7 +225,10 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+    } catch (e) {}
     localStorage.removeItem("ilai_admin_session");
     router.push("/admin/login");
   };

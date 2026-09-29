@@ -176,11 +176,9 @@ DROP POLICY IF EXISTS "Public Select Order Status History" ON order_status_histo
 
 CREATE POLICY "Public Read Products" ON products FOR SELECT USING (true);
 CREATE POLICY "Public Read Settings" ON store_settings FOR SELECT USING (true);
-CREATE POLICY "Public Create Orders" ON orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Create Order Items" ON order_items FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Select Track Order" ON orders FOR SELECT USING (true);
-CREATE POLICY "Public Select Track Items" ON order_items FOR SELECT USING (true);
-CREATE POLICY "Public Select Order Status History" ON order_status_history FOR SELECT USING (true);
+CREATE POLICY "Anon Insert Orders Only" ON orders FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Anon Insert Order Items Only" ON order_items FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Anon Insert Order Status History Only" ON order_status_history FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- 9. Admin Users Table
 CREATE TABLE IF NOT EXISTS admin_users (

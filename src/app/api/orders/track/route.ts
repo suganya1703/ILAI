@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getLocalOrder } from "@/lib/orders-store";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limitCheck = rateLimit({ ip, limit: 20, windowMs: 60 * 1000 });
+    const ip = getClientIp(req);
+    const limitCheck = rateLimit({ key: `track:${ip}`, limit: 15, windowMs: 60 * 1000 });
 
     if (!limitCheck.success) {
       return NextResponse.json(

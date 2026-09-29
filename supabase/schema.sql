@@ -117,22 +117,36 @@ FOR EACH ROW
 EXECUTE FUNCTION generate_order_number();
 
 -- Enable RLS Policies
+-- Enable RLS Policies on all sensitive tables
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_status_history ENABLE ROW LEVEL SECURITY;
 
--- Public Read for Products & Store Settings
+-- 1. Public Read for Catalog & Settings (Safe for store display)
+DROP POLICY IF EXISTS "Public Read Products" ON products;
 CREATE POLICY "Public Read Products" ON products FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Settings" ON store_settings;
 CREATE POLICY "Public Read Settings" ON store_settings FOR SELECT USING (true);
 
--- Allow Public Insert for Orders & Order Items
-CREATE POLICY "Public Create Orders" ON orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Create Order Items" ON order_items FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Select Track Order" ON orders FOR SELECT USING (true);
-CREATE POLICY "Public Select Track Items" ON order_items FOR SELECT USING (true);
-CREATE POLICY "Public Select Order Status History" ON order_status_history FOR SELECT USING (true);
+-- 2. Orders & Order Items RLS Protection:
+-- The public/anon key can ONLY INSERT new orders (cannot SELECT, UPDATE, or DELETE other customers' data).
+-- Server-side API endpoints use the Supabase Service Role Key which bypasses RLS for admin operations and tracking.
+DROP POLICY IF EXISTS "Public Create Orders" ON orders;
+DROP POLICY IF EXISTS "Public Select Track Order" ON orders;
+DROP POLICY IF EXISTS "Anon Insert Orders Only" ON orders;
+CREATE POLICY "Anon Insert Orders Only" ON orders FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Create Order Items" ON order_items;
+DROP POLICY IF EXISTS "Public Select Track Items" ON order_items;
+DROP POLICY IF EXISTS "Anon Insert Order Items Only" ON order_items;
+CREATE POLICY "Anon Insert Order Items Only" ON order_items FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Select Order Status History" ON order_status_history;
+DROP POLICY IF EXISTS "Anon Insert Order Status History Only" ON order_status_history;
+CREATE POLICY "Anon Insert Order Status History Only" ON order_status_history FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- 6. Admin Users Table (Single Administrator Account)
 CREATE TABLE IF NOT EXISTS admin_users (

@@ -1,13 +1,75 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { siteConfig } from "@/config/site";
 import { productContent, getCurrentPrice } from "@/config/content";
 import { sendOrderReceivedEmail } from "@/lib/email";
 import { isValidTamilNaduPincode } from "@/lib/utils";
 import { saveLocalOrder, getNextLocalOrderNumber } from "@/lib/orders-store";
 import { OrderStatus, PaymentStatus } from "@/types";
+
+// Helper to strip script/HTML tags and enforce character boundaries
+function sanitizeText(input: unknown, maxLength: number): string {
+  if (typeof input !== "string") return "";
+  return input
+    .trim()
+    .replace(/[<>]/g, "") // Strip HTML tag angle brackets to prevent stored XSS
+    .slice(0, maxLength);
+}
+
+// Validation and sanitization schema for checkout form (Server-Side)
+const checkoutSchema = z.object({
+  customer_name: z
+    .string()
+    .min(2, "Full Name must be at least 2 characters")
+    .max(100, "Full Name cannot exceed 100 characters")
+    .transform((val) => sanitizeText(val, 100)),
+  customer_email: z
+    .string()
+    .email("Valid email address is required for order confirmation")
+    .max(255, "Email address cannot exceed 255 characters")
+    .transform((val) => val.trim().toLowerCase()),
+  customer_mobile: z
+    .string()
+    .transform((val) => val.trim().replace(/\D/g, "").slice(-10))
+    .refine((val) => /^[6-9]\d{9}$/.test(val), {
+      message: "Mobile must be a valid 10-digit Indian phone number starting with 6-9",
+    }),
+  address_line: z
+    .string()
+    .min(5, "Address must be at least 5 characters")
+    .max(300, "Address cannot exceed 300 characters")
+    .transform((val) => sanitizeText(val, 300)),
+  city: z
+    .string()
+    .min(2, "City is required")
+    .max(60, "City cannot exceed 60 characters")
+    .transform((val) => sanitizeText(val, 60)),
+  state: z
+    .string()
+    .default("Tamil Nadu")
+    .transform((val) => sanitizeText(val || "Tamil Nadu", 50)),
+  pincode: z
+    .string()
+    .transform((val) => val.trim().replace(/\D/g, ""))
+    .refine((val) => /^\d{6}$/.test(val), {
+      message: "PIN code must be a valid 6-digit number",
+    }),
+  payment_method: z.enum(["upi", "upi_gpay", "cod", "razorpay"]),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().transform((val) => sanitizeText(val, 50)),
+        quantity: z
+          .number()
+          .int("Quantity must be a whole number")
+          .min(1, "Minimum quantity is 1 pack")
+          .max(10, "Maximum quantity is 10 packs per item"),
+      })
+    )
+    .min(1, "Cart cannot be empty"),
+});
 
 async function getSequentialOrderNumber(): Promise<string> {
   if (isSupabaseConfigured) {
@@ -23,32 +85,19 @@ async function getSequentialOrderNumber(): Promise<string> {
   return getNextLocalOrderNumber();
 }
 
-// Validation schema for checkout form
-const checkoutSchema = z.object({
-  customer_name: z.string().min(2, "Full Name must be at least 2 characters"),
-  customer_email: z.string().email("Valid email address is required for order confirmation"),
-  customer_mobile: z.string().regex(/^[6-9]\d{9}$/, "Mobile must be a valid 10-digit Indian phone number starting with 6-9"),
-  address_line: z.string().min(5, "Address must be at least 5 characters"),
-  city: z.string().min(2, "City is required"),
-  state: z.string().default("Tamil Nadu"),
-  pincode: z.string().regex(/^\d{6}$/, "PIN code must be a valid 6-digit number"),
-  payment_method: z.enum(["upi", "upi_gpay", "cod", "razorpay"]),
-  items: z.array(
-    z.object({
-      productId: z.string(),
-      quantity: z.number().min(1).max(10),
-    })
-  ).min(1, "Cart cannot be empty"),
-});
-
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
-    const limitCheck = rateLimit({ ip, limit: 10, windowMs: 60 * 1000 });
+    const ip = getClientIp(req);
+    // Rate limit: max 5 checkout/order creations per minute per IP
+    const limitCheck = rateLimit({
+      key: `checkout_rate:${ip}`,
+      limit: 5,
+      windowMs: 60 * 1000,
+    });
 
     if (!limitCheck.success) {
       return NextResponse.json(
-        { error: "Too many checkout requests. Please try again in a minute." },
+        { error: "Too many checkout requests. Please wait a minute and try again." },
         { status: 429 }
       );
     }
