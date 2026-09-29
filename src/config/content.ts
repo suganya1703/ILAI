@@ -1,11 +1,8 @@
 // Single Source of Truth for Pad Size
-export const PAD_SIZE_TEXT = "To be updated after testing";
+export const PAD_SIZE_TEXT = "XL";
 
 // Single Source of Truth for Absorbency Information
-// Active Version for now:
-export const ABSORBENCY_TEXT = "Target absorbency: 40-50 ml (lab testing in progress)";
-// Future Version (uncomment to activate later):
-// export const ABSORBENCY_TEXT = "Absorbency: 40-50 ml (tested as per <method>, report available)";
+export const ABSORBENCY_TEXT = "40 to 50 ml";
 
 // Single Source of Truth for Materials Used
 export const MATERIALS_TEXT = "Made from Banana Fibre & Water Hyacinth";
@@ -112,7 +109,7 @@ export const productContent = {
     {
       id: "comfortable",
       title: "Soft & Absorbent",
-      description: `Gentle texture designed for comfort. ${ABSORBENCY_TEXT}.`,
+      description: `Gentle texture designed for comfort. Absorbency: ${ABSORBENCY_TEXT}.`,
       icon: "ShieldCheck"
     },
     {
@@ -164,11 +161,11 @@ export const productContent = {
 export const faqContent = [
   {
     question: "What is the absorbency capacity of ILAI sanitary pads?",
-    answer: ABSORBENCY_TEXT
+    answer: `ILAI sanitary pads provide an absorbency capacity of ${ABSORBENCY_TEXT} for reliable and comfortable protection.`
   },
   {
     question: "What is the size / dimensions of the pads?",
-    answer: PAD_SIZE_TEXT
+    answer: `ILAI sanitary pads are currently available in ${PAD_SIZE_TEXT} size.`
   },
   {
     question: "Where does ILAI deliver?",

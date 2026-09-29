@@ -20,10 +20,23 @@ import {
   CreditCard,
   QrCode,
   Banknote,
-  Send
+  Send,
+  Calendar,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Hash
 } from "lucide-react";
 import { Order, OrderStatus, PaymentStatus } from "@/types";
 import { formatINR } from "@/lib/utils";
+
+interface DailySummaryItem {
+  date: string;
+  totalOrders: number;
+  upiPaidOrders: number;
+  codOrders: number;
+  totalReceived: number;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -43,7 +56,15 @@ export default function AdminDashboardPage() {
     codRevenue: number;
     totalRevenue: number;
     totalOrders: number;
+    todayOrders?: number;
+    todayReceived?: number;
+    pendingVerification?: number;
+    dailySummary?: DailySummaryItem[];
   } | null>(null);
+
+  // Layout expansion states
+  const [showDetailedCards, setShowDetailedCards] = useState<boolean>(false);
+  const [showAllDays, setShowAllDays] = useState<boolean>(false);
 
   // Status & Payment update modal state
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -233,6 +254,96 @@ export default function AdminDashboardPage() {
     router.push("/admin/login");
   };
 
+  // Memoized daily summary from stats or client fallback
+  const dailySummaryData: DailySummaryItem[] = React.useMemo(() => {
+    if (stats?.dailySummary && stats.dailySummary.length > 0) {
+      return stats.dailySummary;
+    }
+    // Fallback: Compute from currently loaded orders
+    const map = new Map<string, DailySummaryItem>();
+    for (const o of orders) {
+      let dKey = "";
+      try {
+        dKey = o.created_at
+          ? new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Kolkata",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(new Date(o.created_at))
+          : new Date().toISOString().split("T")[0];
+      } catch {
+        dKey = new Date().toISOString().split("T")[0];
+      }
+
+      const isPaidUpi =
+        (o.payment_method === "upi" || o.payment_method === "upi_gpay") &&
+        (o.payment_status || "").toLowerCase() === "paid";
+      const isCod = o.payment_method === "cod";
+      const amount = Number(o.total_amount) || 0;
+
+      const record = map.get(dKey) || {
+        date: dKey,
+        totalOrders: 0,
+        upiPaidOrders: 0,
+        codOrders: 0,
+        totalReceived: 0,
+      };
+
+      record.totalOrders += 1;
+      if (isPaidUpi) {
+        record.upiPaidOrders += 1;
+        record.totalReceived += amount;
+      }
+      if (isCod) {
+        record.codOrders += 1;
+        record.totalReceived += amount;
+      }
+      map.set(dKey, record);
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [stats?.dailySummary, orders]);
+
+  // Helper to format date nicely (e.g., Today • 29 Sep 2026)
+  const formatDailyDate = (dateKey: string) => {
+    try {
+      const today = new Date();
+      const todayKey = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(today);
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(yesterday);
+
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const dateFormatted = dateObj.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+
+      if (dateKey === todayKey) {
+        return `Today • ${dateFormatted}`;
+      }
+      if (dateKey === yesterdayKey) {
+        return `Yesterday • ${dateFormatted}`;
+      }
+      return dateFormatted;
+    } catch {
+      return dateKey;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F2E6] text-[#263618] p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Admin Top Header */}
@@ -277,123 +388,261 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Online Payment & Order Summary Cards (Live from Supabase) */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#506638]">
-              Live Payment & Order Summary
-            </h2>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-              Live Data
-            </span>
+      {/* 1. Simplified Overall Summary (Plain View at Top) */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E2DCCB] shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-[#E2DCCB]/60">
+            {/* Today: [X] orders, ₹[amount] received */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center shrink-0 shadow-xs">
+                <Calendar className="w-5 h-5 text-[#506638]" />
+              </div>
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#5F6F50] block">
+                  Today
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-[#263618]">
+                  <strong>{stats ? stats.todayOrders ?? 0 : 0} orders</strong>,{" "}
+                  <span className="text-emerald-800">{formatINR(stats ? stats.todayReceived ?? 0 : 0)} received</span>
+                </span>
+              </div>
+            </div>
+
+            {/* All time: [X] orders, ₹[amount] total, [X] still pending verification */}
+            <div className="lg:pl-8 pt-3 lg:pt-0 flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
+                <BarChart3 className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#5F6F50] block">
+                  All Time
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-[#263618]">
+                  <strong>{stats ? stats.totalOrders : 0} orders</strong>,{" "}
+                  <strong>{formatINR(stats ? stats.totalRevenue : 0)} total</strong>,{" "}
+                  <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 text-xs sm:text-sm inline-block mt-0.5 sm:mt-0">
+                    {stats ? stats.pendingVerification ?? (stats.upiPendingOrders || 0) : 0} still pending verification
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
-          {stats && (
-            <span className="text-[11px] text-[#5F6F50]">
-              All-Time Total: <strong>{stats.totalOrders} orders</strong> • <strong>{formatINR(stats.totalRevenue)}</strong>
-            </span>
-          )}
+
+          {/* Toggle for 4-card detailed breakdown */}
+          <button
+            type="button"
+            onClick={() => setShowDetailedCards(!showDetailedCards)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#506638] bg-[#F6F2E6] hover:bg-[#EDE8D8] border border-[#E2DCCB] transition-colors self-start md:self-auto shrink-0 shadow-xs cursor-pointer"
+          >
+            <span>{showDetailedCards ? "Hide detailed breakdown" : "Show detailed breakdown"}</span>
+            {showDetailedCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total UPI / GPay Orders */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
-                UPI / GPay Orders
+        {/* Detailed 4-Card Breakdown (Available behind toggle) */}
+        {showDetailedCards && (
+          <div className="pt-4 border-t border-[#E2DCCB]/60 space-y-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[#506638]">
+                Detailed Payment & Channel Breakdown
               </span>
-              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
-                <QrCode className="w-4 h-4" />
-              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                Live Data
+              </span>
             </div>
-            <div className="my-2">
-              <div className="text-3xl font-black text-[#263618]">
-                {stats ? stats.totalUpiOrders : "—"}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total UPI / GPay Orders */}
+              <div className="bg-[#F6F2E6]/60 p-5 rounded-2xl border border-[#E2DCCB] shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                    UPI / GPay Orders
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                    <QrCode className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="my-2">
+                  <div className="text-3xl font-black text-[#263618]">
+                    {stats ? stats.totalUpiOrders : "—"}
+                  </div>
+                  <p className="text-[11px] text-[#5F6F50] mt-0.5">Total online orders received</p>
+                </div>
+                <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    {stats ? stats.upiPaidOrders : 0} Paid
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200">
+                    <Clock className="w-3 h-3 text-amber-600" />
+                    {stats ? stats.upiPendingOrders : 0} Pending
+                  </span>
+                </div>
               </div>
-              <p className="text-[11px] text-[#5F6F50] mt-0.5">Total online orders received</p>
-            </div>
-            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center gap-1.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
-                <Check className="w-3 h-3 text-emerald-600" />
-                {stats ? stats.upiPaidOrders : 0} Paid
-              </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200">
-                <Clock className="w-3 h-3 text-amber-600" />
-                {stats ? stats.upiPendingOrders : 0} Pending
-              </span>
+
+              {/* Card 2: Cash on Delivery Orders */}
+              <div className="bg-[#F6F2E6]/60 p-5 rounded-2xl border border-[#E2DCCB] shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                    Total COD Orders
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                    <Banknote className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="my-2">
+                  <div className="text-3xl font-black text-[#263618]">
+                    {stats ? stats.totalCodOrders : "—"}
+                  </div>
+                  <p className="text-[11px] text-[#5F6F50] mt-0.5">Cash on delivery orders received</p>
+                </div>
+                <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+                  <span>Payment:</span>
+                  <span className="font-bold text-[#263618]">Doorstep Cash</span>
+                </div>
+              </div>
+
+              {/* Card 3: Paid Online Revenue */}
+              <div className="bg-[#F6F2E6]/60 p-5 rounded-2xl border border-[#E2DCCB] shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                    Paid UPI Revenue
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="my-2">
+                  <div className="text-3xl font-black text-emerald-800">
+                    {stats ? formatINR(stats.paidUpiRevenue) : "—"}
+                  </div>
+                  <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                    From {stats ? stats.upiPaidOrders : 0} verified UPI payments
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+                  <span>Status:</span>
+                  <span className="font-bold text-emerald-700">Verified & Realized</span>
+                </div>
+              </div>
+
+              {/* Card 4: COD Revenue */}
+              <div className="bg-[#F6F2E6]/60 p-5 rounded-2xl border border-[#E2DCCB] shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
+                    COD Order Value
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="my-2">
+                  <div className="text-3xl font-black text-[#263618]">
+                    {stats ? formatINR(stats.codRevenue) : "—"}
+                  </div>
+                  <p className="text-[11px] text-[#5F6F50] mt-0.5">
+                    From {stats ? stats.totalCodOrders : 0} COD orders
+                  </p>
+                </div>
+                <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
+                  <span>Collection:</span>
+                  <span className="font-bold text-[#506638]">Payable on Delivery</span>
+                </div>
+              </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Card 2: Cash on Delivery Orders */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
-                Total COD Orders
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
-                <Banknote className="w-4 h-4" />
-              </div>
+      {/* 2. Daily Summary Section (Day-wise Breakdown) */}
+      <div className="bg-white rounded-3xl border border-[#E2DCCB] shadow-sm p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2DCCB]/60 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
+              <Calendar className="w-4 h-4" />
             </div>
-            <div className="my-2">
-              <div className="text-3xl font-black text-[#263618]">
-                {stats ? stats.totalCodOrders : "—"}
-              </div>
-              <p className="text-[11px] text-[#5F6F50] mt-0.5">Cash on delivery orders received</p>
-            </div>
-            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
-              <span>Payment:</span>
-              <span className="font-bold text-[#263618]">Doorstep Cash</span>
-            </div>
-          </div>
-
-          {/* Card 3: Paid Online Revenue */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
-                Paid UPI Revenue
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="my-2">
-              <div className="text-3xl font-black text-emerald-800">
-                {stats ? formatINR(stats.paidUpiRevenue) : "—"}
-              </div>
-              <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
-                From {stats ? stats.upiPaidOrders : 0} verified UPI payments
+            <div>
+              <h2 className="text-xs sm:text-sm font-extrabold text-[#263618] uppercase tracking-wider">
+                Daily Summary
+              </h2>
+              <p className="text-[11px] text-[#5F6F50]">
+                Day-wise orders, payment channels, and total realized revenue (most recent day first)
               </p>
             </div>
-            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
-              <span>Status:</span>
-              <span className="font-bold text-emerald-700">Verified & Realized</span>
-            </div>
           </div>
-
-          {/* Card 4: COD Revenue */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E2DCCB] shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#5F6F50] uppercase tracking-wider">
-                COD Order Value
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-[#EDE8D8] text-[#506638] flex items-center justify-center">
-                <Truck className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="my-2">
-              <div className="text-3xl font-black text-[#263618]">
-                {stats ? formatINR(stats.codRevenue) : "—"}
-              </div>
-              <p className="text-[11px] text-[#5F6F50] mt-0.5">
-                From {stats ? stats.totalCodOrders : 0} COD orders
-              </p>
-            </div>
-            <div className="pt-2.5 border-t border-[#E2DCCB]/60 flex items-center justify-between text-[11px] text-[#5F6F50]">
-              <span>Collection:</span>
-              <span className="font-bold text-[#506638]">Payable on Delivery</span>
-            </div>
-          </div>
+          <span className="text-[11px] bg-[#EDE8D8] text-[#506638] px-3 py-1 rounded-full font-bold border border-[#E2DCCB] self-start sm:self-auto">
+            {dailySummaryData.length} {dailySummaryData.length === 1 ? "Day" : "Days"} with Orders
+          </span>
         </div>
+
+        {dailySummaryData.length === 0 ? (
+          <div className="text-center py-6 text-xs text-[#5F6F50]">
+            No orders recorded yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-[#263618]">
+                <thead className="bg-[#EDE8D8]/50 text-[#506638] font-bold uppercase tracking-wider border-b border-[#E2DCCB]">
+                  <tr>
+                    <th className="p-3 px-4">Date</th>
+                    <th className="p-3 px-4 text-center">Total Orders</th>
+                    <th className="p-3 px-4 text-center">UPI Orders (Paid)</th>
+                    <th className="p-3 px-4 text-center">COD Orders</th>
+                    <th className="p-3 px-4 text-right">Amount Received (Paid UPI + COD)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2DCCB]/50 font-medium">
+                  {(showAllDays ? dailySummaryData : dailySummaryData.slice(0, 3)).map((item) => (
+                    <tr key={item.date} className="hover:bg-[#F6F2E6]/50 transition-colors">
+                      <td className="p-3.5 px-4 font-bold text-[#263618]">
+                        {formatDailyDate(item.date)}
+                      </td>
+                      <td className="p-3.5 px-4 text-center">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#EDE8D8] text-[#263618] font-bold text-[11px]">
+                          {item.totalOrders} {item.totalOrders === 1 ? "order" : "orders"}
+                        </span>
+                      </td>
+                      <td className="p-3.5 px-4 text-center">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          {item.upiPaidOrders} Paid
+                        </span>
+                      </td>
+                      <td className="p-3.5 px-4 text-center">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F6F2E6] text-[#263618] border border-[#E2DCCB] font-bold text-[11px]">
+                          <Truck className="w-3 h-3 text-[#506638]" />
+                          {item.codOrders} COD
+                        </span>
+                      </td>
+                      <td className="p-3.5 px-4 text-right font-extrabold text-sm sm:text-base text-emerald-800">
+                        {formatINR(item.totalReceived)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Expand / Collapse toggle if more than 3 days */}
+            {dailySummaryData.length > 3 && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllDays(!showAllDays)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#506638] hover:text-[#263618] bg-[#F6F2E6] hover:bg-[#EDE8D8] px-4 py-2 rounded-xl border border-[#E2DCCB] transition-colors cursor-pointer"
+                >
+                  <span>
+                    {showAllDays
+                      ? "Show less (recent 3 days)"
+                      : `Show all ${dailySummaryData.length} days (${dailySummaryData.length - 3} older)`}
+                  </span>
+                  {showAllDays ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -454,6 +703,7 @@ export default function AdminDashboardPage() {
             <table className="w-full text-left text-xs text-[#263618]">
               <thead className="bg-[#EDE8D8]/70 text-[#263618] font-bold uppercase tracking-wider border-b border-[#E2DCCB]">
                 <tr>
+                  <th className="p-3.5 px-3 w-12 text-center text-[#5F6F50] font-bold">#</th>
                   <th className="p-3.5 px-4">Order ID & Date</th>
                   <th className="p-3.5 px-4">Customer Details</th>
                   <th className="p-3.5 px-4">Payment Method</th>
@@ -464,10 +714,13 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2DCCB]/60">
-                {orders.map((o) => {
+                {orders.map((o, index) => {
                   const isPendingUpi = (o.payment_method === "upi" || o.payment_method === "upi_gpay") && o.payment_status !== "Paid";
                   return (
                     <tr key={o.id} className="hover:bg-[#F6F2E6]/50 transition-colors">
+                      <td className="p-3.5 px-3 text-center font-bold text-[#5F6F50] select-none text-[11px]">
+                        {index + 1}
+                      </td>
                       <td className="p-3.5 px-4">
                         <span className="font-extrabold text-[#506638] block">{o.order_number}</span>
                         <span className="text-[10px] text-[#5F6F50]">

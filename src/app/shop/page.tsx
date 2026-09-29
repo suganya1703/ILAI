@@ -286,7 +286,7 @@ export default function ShopPage() {
                 <h4 className="font-bold text-[#263618] text-sm mb-1">
                   {productContent.detailsSections.size.title}
                 </h4>
-                <p className="text-[#5F6F50] font-medium italic">
+                <p className="text-[#263618] font-semibold">
                   {productContent.detailsSections.size.content}
                 </p>
               </div>
@@ -295,7 +295,7 @@ export default function ShopPage() {
                 <h4 className="font-bold text-[#263618] text-sm mb-1">
                   {productContent.detailsSections.absorbency.title}
                 </h4>
-                <p className="text-[#5F6F50] font-medium italic">
+                <p className="text-[#263618] font-semibold">
                   {productContent.detailsSections.absorbency.content}
                 </p>
               </div>
