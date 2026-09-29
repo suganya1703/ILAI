@@ -7,6 +7,7 @@ import { getLocalOrder } from "@/lib/orders-store";
 import { siteConfig } from "@/config/site";
 import { productContent } from "@/config/content";
 import { Order } from "@/types";
+import { UpiPaymentSection } from "@/components/upi-payment-section";
 
 export const revalidate = 0;
 
@@ -128,46 +129,15 @@ export default async function OrderConfirmationPage({
           </div>
         </div>
 
-        {/* b. UPI/GPay QR code + "Scan to Pay ₹[amount]" — FIRST and most prominent thing on the page, right at the top */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2DCCB] shadow-md text-center space-y-5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EDE8D8] text-[#506638] text-xs font-bold border border-[#E2DCCB]">
-            <QrCode className="w-4 h-4 text-[#506638]" />
-            <span>UPI / GPay Payment QR Code</span>
-          </div>
-
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#263618]">
-              Scan to Pay {formatINR(orderData.total_amount)}
-            </h2>
-            <p className="text-xs text-[#5F6F50] mt-1">
-              Compatible with Google Pay, PhonePe, Paytm, BHIM, and any UPI app
-            </p>
-          </div>
-
-          <div className="w-64 h-64 sm:w-72 sm:h-72 mx-auto rounded-2xl overflow-hidden border-2 border-[#506638]/30 p-3 bg-white shadow-lg">
-            <img
-              src={`/api/orders/${orderData.confirmation_token || orderData.id}/qr`}
-              alt="ILAI GPay UPI QR Code"
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          <div className="bg-[#F6F2E6] p-3.5 rounded-xl border border-[#E2DCCB] inline-block max-w-sm mx-auto">
-            <p className="text-xs text-[#5F6F50]">UPI ID (Tap or scan in your UPI app):</p>
-            <p className="text-sm font-extrabold text-[#506638] select-all tracking-wide mt-0.5">{siteConfig.upiId}</p>
-          </div>
-
-          {/* c. Below the QR: a clear instruction — "After paying, we'll verify and confirm your order shortly." */}
-          <div className="max-w-md mx-auto bg-[#EDE8D8]/80 border border-[#E2DCCB] rounded-2xl p-4 text-center space-y-1.5">
-            <div className="flex items-center justify-center gap-2 text-[#506638] font-bold text-sm">
-              <Clock className="w-4 h-4" />
-              <span>After paying, we&apos;ll verify and confirm your order shortly.</span>
-            </div>
-            <p className="text-xs text-[#5F6F50]">
-              Once you complete payment in your UPI app, our team will verify the payment and confirm your order. Confirmation will be sent to <strong>{orderData.customer_email || "your email"}</strong>.
-            </p>
-          </div>
-        </div>
+        {/* b. UPI Payment Section: On Mobile -> prominent "Pay ₹[amount] with GPay / PhonePe / UPI app" + deep link + fallback toggle; On Desktop -> prominent QR code */}
+        <UpiPaymentSection
+          orderId={orderData.id}
+          orderNumber={cleanOrderNumber}
+          totalAmount={orderData.total_amount}
+          upiId={siteConfig.upiId}
+          qrImageUrl={`/api/orders/${orderData.confirmation_token || orderData.id}/qr`}
+          customerEmail={orderData.customer_email}
+        />
 
         {/* e. The "Thank you for choosing ILAI" message stays, but move it to a secondary position — not above the QR */}
         <div className="bg-white border-l-4 border-[#506638] border-[#E2DCCB] border-t border-r border-b rounded-2xl p-5 sm:p-6 shadow-sm space-y-2">
