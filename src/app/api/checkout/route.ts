@@ -187,66 +187,44 @@ export async function POST(req: Request) {
 
     // 6. Generate sequential Order ID (ILAI-2026-0001, ILAI-2026-0002, ...)
     const generatedOrderNumber = await getSequentialOrderNumber();
-    // Generate private unguessable confirmation token (UUID)
+    // Generate private unguessable confirmation token (UUID) and explicit order ID
+    const orderId = crypto.randomUUID();
     const confirmationToken = crypto.randomUUID();
 
     // 7. Create Order Record in Supabase (persistent database)
-    let createdOrder: any = null;
+    const orderRecord = {
+      id: orderId,
+      order_number: generatedOrderNumber,
+      confirmation_token: confirmationToken,
+      customer_name: validatedData.customer_name,
+      customer_email: validatedData.customer_email,
+      customer_mobile: validatedData.customer_mobile,
+      address_line: validatedData.address_line,
+      city: validatedData.city,
+      state: "Tamil Nadu", // Fixed to Tamil Nadu
+      pincode: validatedData.pincode,
+      payment_method: validatedData.payment_method,
+      payment_status: initialPaymentStatus,
+      order_status: initialOrderStatus,
+      subtotal,
+      delivery_charge: deliveryCharge,
+      total_amount: totalAmount,
+      created_at: new Date().toISOString(),
+    };
+
+    let createdOrder: any = orderRecord;
     if (isSupabaseConfigured) {
       try {
-        const { data: order, error: orderError } = await supabaseAdmin
+        const { error: orderError } = await supabaseAdmin
           .from("orders")
-          .insert({
-            order_number: generatedOrderNumber,
-            confirmation_token: confirmationToken,
-            customer_name: validatedData.customer_name,
-            customer_email: validatedData.customer_email,
-            customer_mobile: validatedData.customer_mobile,
-            address_line: validatedData.address_line,
-            city: validatedData.city,
-            state: "Tamil Nadu", // Fixed to Tamil Nadu
-            pincode: validatedData.pincode,
-            payment_method: validatedData.payment_method,
-            payment_status: initialPaymentStatus,
-            order_status: initialOrderStatus,
-            subtotal,
-            delivery_charge: deliveryCharge,
-            total_amount: totalAmount,
-          })
-          .select("*")
-          .single();
+          .insert(orderRecord);
 
         if (orderError) {
           console.error("[Supabase Orders Insert Error]:", orderError);
-        } else if (order) {
-          createdOrder = order;
         }
       } catch (dbErr) {
         console.error("[Supabase Orders Exception]:", dbErr);
       }
-    }
-
-    if (!createdOrder) {
-      const generatedId = crypto.randomUUID();
-      createdOrder = {
-        id: generatedId,
-        confirmation_token: confirmationToken,
-        order_number: generatedOrderNumber,
-        customer_name: validatedData.customer_name,
-        customer_email: validatedData.customer_email,
-        customer_mobile: validatedData.customer_mobile,
-        address_line: validatedData.address_line,
-        city: validatedData.city,
-        state: "Tamil Nadu",
-        pincode: validatedData.pincode,
-        payment_method: validatedData.payment_method,
-        payment_status: initialPaymentStatus,
-        order_status: initialOrderStatus,
-        subtotal,
-        delivery_charge: deliveryCharge,
-        total_amount: totalAmount,
-        created_at: new Date().toISOString(),
-      };
     }
 
     // 7. Create Order Items
@@ -303,6 +281,7 @@ export async function POST(req: Request) {
       confirmationToken: finalToken,
       totalAmount,
       paymentMethod: validatedData.payment_method,
+      order: fullOrderForEmail,
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {

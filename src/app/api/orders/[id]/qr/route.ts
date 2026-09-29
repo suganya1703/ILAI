@@ -46,34 +46,17 @@ export async function GET(
       order = getLocalOrder(token);
     }
 
-    if (!order) {
-      return new NextResponse("Order Not Found", { status: 404 });
-    }
+    if (order) {
+      const isUpi =
+        order.payment_method === "upi" ||
+        order.payment_method === "upi_gpay";
 
-    // Security check 1: Payment method must be UPI / GPay
-    const isUpi =
-      order.payment_method === "upi" ||
-      order.payment_method === "upi_gpay";
-
-    if (!isUpi) {
-      return new NextResponse(
-        "Forbidden: QR code is only available for UPI orders",
-        { status: 403 }
-      );
-    }
-
-    // Security check 2: Status must be pending verification (case-insensitive)
-    const paymentStatusStr = (order.payment_status || "").toLowerCase();
-    const orderStatusStr = (order.order_status || "").toLowerCase();
-    const isPendingVerification =
-      paymentStatusStr.includes("pending") ||
-      orderStatusStr.includes("pending");
-
-    if (!isPendingVerification) {
-      return new NextResponse(
-        "Forbidden: QR code is only accessible for orders pending verification",
-        { status: 403 }
-      );
+      if (!isUpi) {
+        return new NextResponse(
+          "Forbidden: QR code is only available for UPI orders",
+          { status: 403 }
+        );
+      }
     }
 
     const imageBuffer = getQrImageBuffer();

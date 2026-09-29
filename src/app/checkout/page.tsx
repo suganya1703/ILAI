@@ -202,6 +202,18 @@ export default function CheckoutPage() {
 
       const confirmationToken = data.confirmationToken || data.orderId;
 
+      if (data.order) {
+        try {
+          sessionStorage.setItem(`ilai_order_${confirmationToken}`, JSON.stringify(data.order));
+          if (data.orderId) {
+            sessionStorage.setItem(`ilai_order_${data.orderId}`, JSON.stringify(data.order));
+          }
+          sessionStorage.setItem("ilai_latest_order", JSON.stringify(data.order));
+        } catch (storageErr) {
+          console.warn("Session storage save notice:", storageErr);
+        }
+      }
+
       // 1. If UPI / GPay payment method: redirect immediately to confirmation page with QR code
       if (formData.payment_method === "upi" || formData.payment_method === "upi_gpay") {
         clearCart();
